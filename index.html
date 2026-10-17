@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор викторин для учителей</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- ==================== FIREBASE SDK ==================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import {
+            getAuth, createUserWithEmailAndPassword,
+            signInWithEmailAndPassword, signOut, onAuthStateChanged,
+            GoogleAuthProvider, signInWithPopup, updateProfile
+        } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import {
+            getFirestore, collection, addDoc, getDocs, getDoc,
+            query, where, deleteDoc, doc, updateDoc, serverTimestamp,
+            onSnapshot
+        } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFir3jDFzRUMEG3PjqVBCgYP5uc1edTDE",
+            authDomain: "quiz-builder-2ecc7.firebaseapp.com",
+            projectId: "quiz-builder-2ecc7",
+            storageBucket: "quiz-builder-2ecc7.firebasestorage.app",
+            messagingSenderId: "341139715457",
+            appId: "1:341139715457:web:b68133ba5b552b53766480"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ===== API в глобальное пространство =====
+        window.fb = {
+            auth, db,
+
+            async register(email, password, name) {
+                try {
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    if (name) await updateProfile(cred.user, { displayName: name });
+                    return { ok: true, user: cred.user };
+                } catch (e) { return { ok: false, error: translateError(e.code) }; }
+            },
+
+            async login(email, password) {
+                try {
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    return { ok: true, user: cred.user };
+                } catch (e) { return { ok: false, error: translateError(e.code) }; }
+            },
+
+            async loginGoogle() {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    const cred = await signInWithPopup(auth, provider);
+                    return { ok: true, user: cred.user };
+                } catch (e) { return { ok: false, error: translateError(e.code) }; }
+            },
+
+            async logout() { await signOut(auth); },
+
+            onAuthChange(cb) { onAuthStateChanged(auth, cb); },
+
+            async saveQuiz(quizData) {
+                if (!auth.currentUser) return { ok: false, error: 'Не авторизован' };
+                try {
+                    const docRef = await addDoc(collection(db, 'quizzes'), {
+                        ...quizData,
+                        teacherId: auth.currentUser.uid,
+                        teacherEmail: auth.currentUser.email,
+                        teacherName: auth.currentUser.displayName || '',
+                        createdAt: serverTimestamp()
+                    });
+                    return { ok: true, id: docRef.id };
+                } catch (e) { return { ok: false, error: e.message }; }
+            },
+
+            async getMyQuizzes() {
+                if (!auth.currentUser) return [];
+                try {
+                    const q = query(collection(db, 'quizzes'), where('teacherId', '==', auth.currentUser.uid));
+                    const snap = await getDocs(q);
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => ((b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+                    return list;
+                } catch (e) { console.error(e); return []; }
+            },
+
+            async getQuiz(quizId) {
+                try {
+                    const d = await getDoc(doc(db, 'quizzes', quizId));
+                    if (d.exists()) return { id: d.id, ...d.data() };
+                    return null;
+                } catch (e) { return null; }
+            },
+
+            async deleteQuiz(quizId) {
+                try { await deleteDoc(doc(db, 'quizzes', quizId)); return { ok: true }; }
+                catch (e) { return { ok: false, error: e.message }; }
+            },
+
+            async saveResult(quizId, result) {
+                try {
+                    await addDoc(collection(db, 'results'), {
+                        quizId, ...result, createdAt: serverTimestamp()
+                    });
+                    return { ok: true };
+                } catch (e) { return { ok: false, error: e.message }; }
+            },
+
+            subscribeResults(quizId, callback) {
+                const q = query(collection(db, 'results'), where('quizId', '==', quizId));
+                return onSnapshot(q, (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => ((b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+                    callback(list);
+                });
+            }
+        };
+
+        function translateError(code) {
+            const map = {
+                'auth/email-already-in-use': 'Этот email уже зарегистрирован',
+                'auth/invalid-email': 'Неверный формат email',
+                'auth/weak-password': 'Пароль слишком простой (минимум 6 символов)',
+                'auth/user-not-found': 'Пользователь не найден',
+                'auth/wrong-password': 'Неверный пароль',
+                'auth/invalid-credential': 'Неверный email или пароль',
+                'auth/too-many-requests': 'Слишком много попыток, попробуйте позже',
+                'auth/popup-closed-by-user': 'Окно входа закрыто',
+                'auth/network-request-failed': 'Нет подключения к интернету',
+                'auth/operation-not-allowed': 'Этот способ входа не включён в Firebase',
+                'auth/unauthorized-domain': 'Домен не разрешён в Firebase'
+            };
+            return map[code] || 'Ошибка: ' + code;
+        }
+
+        window.firebaseReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; min-height: 100%; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: #f5f2ec;
+            color: #3a3530;
+            padding: 1.5rem;
+            line-height: 1.55;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #bgCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+        }
+
+        .bg-gradient {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1; pointer-events: none;
+            animation: bgShift 24s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0%, 100% {
+                background:
+                    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255, 240, 220, 0.75) 0%, transparent 60%),
+                    radial-gradient(ellipse 70% 70% at 80% 80%, rgba(230, 235, 240, 0.65) 0%, transparent 60%),
+                    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245, 240, 230, 0.5) 0%, transparent 70%);
+            }
+            50% {
+                background:
+                    radial-gradient(ellipse 85% 65% at 70% 30%, rgba(240, 230, 225, 0.75) 0%, transparent 60%),
+                    radial-gradient(ellipse 65% 75% at 30% 70%, rgba(245, 245, 240, 0.65) 0%, transparent 60%),
+                    radial-gradient(ellipse 65% 55% at 60% 40%, rgba(235, 230, 220, 0.5) 0%, transparent 70%);
+            }
+            100% {
+                background:
+                    radial-gradient(ellipse 75% 65% at 40% 80%, rgba(250, 235, 215, 0.75) 0%, transparent 60%),
+                    radial-gradient(ellipse 80% 60% at 60% 20%, rgba(235, 238, 242, 0.65) 0%, transparent 60%),
+                    radial-gradient(ellipse 70% 60% at 30% 50%, rgba(240, 240, 235, 0.5) 0%, transparent 70%);
+            }
+        }
+
+        .app {
+            position: relative; z-index: 2;
+            max-width: 920px; margin: 0 auto;
+            background: rgba(255, 253, 248, 0.9);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 1.2rem;
+            padding: 2rem 1.8rem 2.2rem;
+            border: 1px solid rgba(180, 170, 155, 0.25);
+            box-shadow: 0 12px 40px rgba(120, 110, 95, 0.1), 0 2px 8px rgba(120, 110, 95, 0.05);
+            animation: appEnter 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+        }
+
+        @keyframes appEnter {
+            from { opacity: 0; transform: translateY(24px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .app-header {
+            text-align: center; margin-bottom: 1.8rem;
+            padding-bottom: 1.4rem;
+            border-bottom: 1px solid rgba(180, 170, 155, 0.3);
+        }
+
+        .app-header h1 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 2.6rem; font-weight: 800;
+            letter-spacing: -0.5px; line-height: 1.1;
+            margin-bottom: 0.5rem; text-transform: uppercase;
+            background: linear-gradient(135deg, #6b5f4f 0%, #8a7a65 50%, #4a4238 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleShimmer 8s ease-in-out infinite;
+            background-size: 200% 200%;
+        }
+
+        @keyframes titleShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .app-header .sub { font-size: 0.9rem; color: #8a7f70; font-style: italic; }
+
+        .user-bar {
+            display: flex; justify-content: space-between;
+            align-items: center;
+            background: #f2f0e6;
+            border: 1px solid rgba(180, 170, 155, 0.4);
+            border-radius: 0.7rem;
+            padding: 0.8rem 1.1rem;
+            margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
+            animation: panelIn 0.4s ease both;
+        }
+
+        .user-info { display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 180px; }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #6b5f4f, #8a7a65);
+            color: #fffdf8;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        }
+        .user-email { font-size: 0.9rem; font-weight: 600; color: #4a4238; word-break: break-all; }
+        .user-role { font-size: 0.75rem; color: #8a7f70; }
+        .user-actions { display: flex; gap: 0.5rem; }
+
+        .auth-wrap {
+            max-width: 420px; margin: 1.5rem auto;
+            background: #fdfbf6;
+            border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 1rem;
+            padding: 2rem 1.8rem;
+            animation: panelIn 0.5s ease both;
+            box-shadow: 0 8px 30px rgba(120, 110, 95, 0.08);
+        }
+        .auth-wrap h2 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.4rem; font-weight: 700;
+            color: #4a4238; margin-bottom: 0.4rem; text-align: center;
+        }
+        .auth-wrap .auth-sub {
+            text-align: center; color: #8a7f70;
+            font-size: 0.88rem; margin-bottom: 1.6rem;
+        }
+        .auth-switch {
+            display: flex; gap: 0; margin-bottom: 1.5rem;
+            background: #f0ece3; border-radius: 0.5rem; padding: 4px;
+        }
+        .auth-switch button {
+            flex: 1; background: transparent; border: none;
+            padding: 0.6rem 1rem; font-family: inherit;
+            font-size: 0.9rem; font-weight: 600;
+            color: #8a7f70; cursor: pointer;
+            border-radius: 0.4rem; transition: all 0.2s;
+        }
+        .auth-switch button.active {
+            background: #fff; color: #4a4238;
+            box-shadow: 0 2px 6px rgba(120, 110, 95, 0.1);
+        }
+        .auth-field { margin-bottom: 1rem; }
+        .auth-field label {
+            display: block; font-size: 0.82rem; font-weight: 600;
+            color: #4a4238; margin-bottom: 0.35rem;
+        }
+        .auth-field input {
+            width: 100%; padding: 0.7rem 0.9rem;
+            font-size: 0.95rem; font-family: inherit;
+            color: #3a3530; background: #fff;
+            border: 1px solid rgba(180, 170, 155, 0.5);
+            border-radius: 0.5rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .auth-field input:focus {
+            outline: none; border-color: #a89b88;
+            box-shadow: 0 0 0 3px rgba(168, 155, 136, 0.15);
+        }
+        .auth-error {
+            background: #f5e6e6; color: #7a3a3a;
+            padding: 0.6rem 0.9rem; border-radius: 0.4rem;
+            font-size: 0.85rem; margin-bottom: 1rem;
+            display: none; animation: panelIn 0.25s ease both;
+        }
+        .auth-error.show { display: block; }
+
+        .auth-divider {
+            text-align: center; margin: 1.2rem 0;
+            position: relative; color: #a89b88; font-size: 0.78rem;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+            content: ''; position: absolute; top: 50%;
+            width: 42%; height: 1px;
+            background: rgba(180, 170, 155, 0.3);
+        }
+        .auth-divider::before { left: 0; }
+        .auth-divider::after { right: 0; }
+
+        .btn-google {
+            background: #fff; color: #3a3530;
+            border: 1.5px solid rgba(180, 170, 155, 0.5);
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.6rem; width: 100%;
+            padding: 0.75rem 1rem;
+            font-weight: 500; font-size: 0.92rem;
+        }
+        .btn-google:hover { background: #faf8f3; border-color: #a89b88; }
+        .btn-google svg { width: 18px; height: 18px; }
+
+        .loading-screen {
+            text-align: center; padding: 3rem 1rem; color: #8a7f70;
+        }
+        .loading-spinner {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 3px solid rgba(107, 95, 79, 0.15);
+            border-top-color: #6b5f4f;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 1.8rem;
+            border-bottom: 1px solid rgba(180, 170, 155, 0.25);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent; border: none;
+            padding: 0.7rem 1.2rem; font-size: 0.95rem; font-weight: 500;
+            color: #8a7f70; cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease; font-family: inherit;
+            margin-bottom: -1px; position: relative;
+        }
+        .tab-btn:hover { color: #4a4238; }
+        .tab-btn.active { color: #4a4238; border-bottom-color: #8a7f70; font-weight: 600; }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -3px; left: 50%;
+            transform: translateX(-50%); width: 6px; height: 6px;
+            background: #8a7f70; border-radius: 50%;
+            animation: dotPulse 1.6s ease-in-out infinite;
+        }
+        @keyframes dotPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.5); opacity: 0.6; }
+        }
+
+        .panel { display: none; }
+        .panel.active { display: block; animation: panelIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .field { margin-bottom: 1.3rem; }
+        .field label {
+            display: block; font-size: 0.85rem; font-weight: 600;
+            color: #4a4238; margin-bottom: 0.4rem;
+        }
+        .field input[type="text"],
+        .field input[type="number"],
+        .field textarea {
+            width: 100%; padding: 0.7rem 0.9rem;
+            font-size: 0.95rem; font-family: inherit; color: #3a3530;
+            background: #ffffff; border: 1px solid rgba(180, 170, 155, 0.5);
+            border-radius: 0.5rem;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+        }
+        .field input:focus, .field textarea:focus {
+            outline: none; border-color: #a89b88;
+            box-shadow: 0 0 0 3px rgba(168, 155, 136, 0.15);
+            transform: translateY(-1px);
+        }
+        .field textarea { min-height: 70px; resize: vertical; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.4rem; padding: 0.75rem 1.6rem; font-size: 0.95rem;
+            font-weight: 600; font-family: inherit; border: none;
+            border-radius: 0.55rem; cursor: pointer;
+            transition: all 0.18s ease; letter-spacing: 0.2px;
+            position: relative; overflow: hidden;
+        }
+        .btn-primary { background: #6b5f4f; color: #fffdf8; }
+        .btn-primary:hover {
+            background: #574b3d; transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(107, 95, 79, 0.28);
+        }
+        .btn-secondary {
+            background: transparent; color: #6b5f4f;
+            border: 1.5px solid #b8ab98;
+        }
+        .btn-secondary:hover {
+            background: rgba(184, 171, 152, 0.12);
+            border-color: #6b5f4f; transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: transparent; color: #b85a5a;
+            border: 1.5px solid #d4a0a0;
+            padding: 0.4rem 0.9rem; font-size: 0.82rem;
+        }
+        .btn-danger:hover { background: rgba(184, 90, 90, 0.08); border-color: #b85a5a; }
+        .btn-small { padding: 0.45rem 1rem; font-size: 0.85rem; }
+        .btn-block { width: 100%; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+        #generateBtn { animation: btnGlow 3s ease-in-out infinite; }
+        @keyframes btnGlow {
+            0%, 100% { box-shadow: 0 0 0 rgba(107, 95, 79, 0); }
+            50% { box-shadow: 0 0 24px rgba(107, 95, 79, 0.35); }
+        }
+
+        .question-card {
+            background: #fdfbf6; border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.7rem; padding: 1.1rem 1.2rem;
+            margin-bottom: 0.9rem; position: relative;
+            animation: cardSlideIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        @keyframes cardSlideIn {
+            from { opacity: 0; transform: translateX(-20px) scale(0.98); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .question-card:hover { box-shadow: 0 4px 16px rgba(120, 110, 95, 0.1); transform: translateY(-2px); }
+        .question-card .q-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 0.8rem;
+        }
+        .question-card .q-num {
+            font-size: 0.75rem; font-weight: 700; color: #8a7f70;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            font-family: 'Unbounded', sans-serif;
+        }
+
+        .option-row {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 0.5rem; animation: optionIn 0.3s ease both;
+        }
+        @keyframes optionIn {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .option-row input[type="radio"] {
+            width: 18px; height: 18px; accent-color: #6b5f4f;
+            cursor: pointer; flex-shrink: 0; transition: transform 0.15s;
+        }
+        .option-row input[type="radio"]:checked { transform: scale(1.15); }
+        .option-row input[type="text"] {
+            flex: 1; padding: 0.55rem 0.8rem; font-size: 0.9rem;
+            border: 1px solid rgba(180, 170, 155, 0.45);
+            border-radius: 0.4rem; background: #fff;
+            font-family: inherit; color: #3a3530;
+        }
+        .option-row input[type="text"]:focus {
+            outline: none; border-color: #a89b88;
+            box-shadow: 0 0 0 2px rgba(168, 155, 136, 0.12);
+        }
+
+        .correct-label {
+            font-size: 0.7rem; color: #7a9a7a; white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            font-weight: 700; padding: 0.15rem 0.5rem;
+            background: rgba(122, 154, 122, 0.12);
+            border-radius: 0.3rem;
+            animation: correctPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); background: rgba(122, 154, 122, 0.12); }
+            50% { transform: scale(1.08); background: rgba(122, 154, 122, 0.22); }
+        }
+
+        .link-box {
+            background: #f0ece3; border: 1px solid rgba(180, 170, 155, 0.4);
+            border-radius: 0.6rem; padding: 1rem 1.2rem;
+            margin: 1rem 0; display: flex; align-items: center;
+            gap: 0.7rem; flex-wrap: wrap;
+        }
+        .link-box input {
+            flex: 1; min-width: 200px; padding: 0.65rem 0.9rem;
+            font-family: 'Courier New', monospace; font-size: 0.85rem;
+            color: #4a4238; background: #fff;
+            border: 1px solid rgba(180, 170, 155, 0.5);
+            border-radius: 0.4rem;
+        }
+        .link-box input:focus { outline: none; border-color: #a89b88; }
+
+        .saved-item {
+            background: #fdfbf6; border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.6rem; padding: 1rem 1.2rem;
+            margin-bottom: 0.7rem;
+            display: flex; justify-content: space-between;
+            align-items: center; gap: 0.8rem; flex-wrap: wrap;
+            transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+            animation: cardSlideIn 0.4s ease both;
+        }
+        .saved-item:hover {
+            background: #faf7f0; transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(120, 110, 95, 0.08);
+        }
+        .saved-item .info { flex: 1; min-width: 200px; }
+        .saved-item .info .title {
+            font-weight: 600; color: #4a4238;
+            font-size: 1rem; margin-bottom: 0.15rem;
+        }
+        .saved-item .info .meta { font-size: 0.78rem; color: #8a7f70; }
+        .saved-item .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+        .empty { text-align: center; padding: 2.5rem 1rem; color: #a89b88; font-size: 0.95rem; }
+        .empty .big { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.3; animation: emptyFloat 3s ease-in-out infinite; }
+        @keyframes emptyFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #6b5f4f; color: #fffdf8;
+            padding: 0.75rem 1.5rem; border-radius: 2rem;
+            font-size: 0.9rem; font-weight: 500;
+            box-shadow: 0 8px 24px rgba(107, 95, 79, 0.35);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 1000;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .confetti {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 999; overflow: hidden;
+        }
+        .confetti-piece {
+            position: absolute; width: 8px; height: 14px; opacity: 0.9;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .save-progress {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 3px; background: transparent;
+            z-index: 1001; opacity: 0; transition: opacity 0.2s;
+        }
+        .save-progress.active { opacity: 1; }
+        .save-progress-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #a89b88, #6b5f4f, #a89b88);
+            background-size: 200% 100%;
+            animation: progressShimmer 1.4s linear infinite;
+            transition: width 0.15s linear;
+        }
+        @keyframes progressShimmer {
+            0% { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+        .row > * { flex: 1; min-width: 180px; }
+
+        .hint { font-size: 0.8rem; color: #a89b88; margin-top: 0.3rem; font-style: italic; }
+
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #fdfbf6;
+            border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.6rem;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 1.2rem; gap: 1rem; flex-wrap: wrap;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .toggle-row.on { background: #f2f0e6; border-color: rgba(107, 95, 79, 0.4); }
+        .toggle-info { flex: 1; min-width: 200px; }
+        .toggle-info .title { font-weight: 600; color: #4a4238; font-size: 0.95rem; margin-bottom: 0.15rem; }
+        .toggle-info .desc { font-size: 0.82rem; color: #8a7f70; line-height: 1.4; }
+        .switch {
+            position: relative; display: inline-block;
+            width: 50px; height: 26px; flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #d8d0bd; border-radius: 26px;
+            transition: background-color 0.25s;
+        }
+        .switch .slider::before {
+            content: ''; position: absolute;
+            height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background-color: #fff; border-radius: 50%;
+            transition: transform 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .switch input:checked + .slider { background-color: #6b5f4f; }
+        .switch input:checked + .slider::before { transform: translateX(24px); }
+
+        .students-summary { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+        .stat-card {
+            flex: 1; min-width: 130px;
+            background: #fdfbf6;
+            border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.6rem; padding: 0.9rem 1rem; text-align: center;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(120, 110, 95, 0.08); }
+        .stat-card .value {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.6rem; font-weight: 700;
+            color: #4a4238; line-height: 1.1;
+        }
+        .stat-card .label {
+            font-size: 0.75rem; color: #8a7f70;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 0.2rem;
+        }
+
+        .student-row {
+            background: #fdfbf6;
+            border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.6rem;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 0.6rem;
+            display: flex; justify-content: space-between;
+            align-items: center; gap: 1rem; flex-wrap: wrap;
+            animation: cardSlideIn 0.35s ease both;
+            transition: background 0.15s, transform 0.15s;
+        }
+        .student-row:hover { background: #faf7f0; transform: translateX(3px); }
+        .student-info { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 0.8rem; }
+        .student-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #d4c5a8, #b8ab98);
+            color: #fffdf8;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.95rem; flex-shrink: 0;
+        }
+        .student-name { font-weight: 600; color: #4a4238; font-size: 0.95rem; }
+        .student-class { font-size: 0.78rem; color: #8a7f70; }
+        .student-date { font-size: 0.75rem; color: #a89b88; font-style: italic; }
+        .student-score {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 700; font-size: 1.1rem;
+            padding: 0.4rem 0.9rem; border-radius: 0.5rem;
+            white-space: nowrap;
+        }
+        .student-score.good { background: #e6f0e6; color: #3a5a3a; }
+        .student-score.mid { background: #f5f0e0; color: #7a6a3a; }
+        .student-score.bad { background: #f5e6e6; color: #7a3a3a; }
+
+        .student-form { max-width: 440px; margin: 0 auto; animation: panelIn 0.5s ease both; }
+        .student-form h2 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.3rem; font-weight: 700;
+            color: #4a4238; margin-bottom: 0.4rem; text-align: center;
+        }
+        .student-form .sub {
+            text-align: center; color: #8a7f70;
+            font-size: 0.9rem; margin-bottom: 1.8rem;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 0.7rem; }
+            .app { padding: 1.2rem 1rem 1.6rem; }
+            .app-header h1 { font-size: 1.7rem; }
+            .tab-btn { padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+            .question-card { padding: 0.9rem; }
+            .option-row input[type="text"] { font-size: 0.85rem; }
+            .saved-item { padding: 0.8rem; }
+            .student-score { font-size: 0.95rem; padding: 0.3rem 0.7rem; }
+            .auth-wrap { padding: 1.4rem 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <div class="bg-gradient"></div>
+
+    <div class="save-progress" id="saveProgress">
+        <div class="save-progress-fill" id="saveProgressFill"></div>
+    </div>
+
+    <div class="app" id="appRoot">
+        <div id="loadingScreen" class="loading-screen">
+            <div class="loading-spinner"></div>
+            <div>Загрузка...</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== ФОН ====================
+        (function() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, blobs = [];
+            const BLOB_COUNT = 6;
+            const TARGET_FPS = 24;
+            const FRAME_INTERVAL = 1000 / TARGET_FPS;
+            let lastTime = 0;
+
+            const COLORS = [
+                { r: 245, g: 235, b: 220 }, { r: 235, g: 230, b: 225 },
+                { r: 240, g: 240, b: 235 }, { r: 250, g: 245, b: 235 },
+                { r: 230, g: 228, b: 225 }, { r: 248, g: 242, b: 230 }
+            ];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                if (blobs.length === 0) initBlobs();
+            }
+
+            function initBlobs() {
+                blobs = [];
+                for (let i = 0; i < BLOB_COUNT; i++) blobs.push(createBlob());
+            }
+
+            function createBlob() {
+                const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                return {
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: 180 + Math.random() * 220,
+                    vx: (Math.random() - 0.5) * 0.25,
+                    vy: (Math.random() - 0.5) * 0.25,
+                    color, alpha: 0.55 + Math.random() * 0.25,
+                    pulse: Math.random() * Math.PI * 2,
+                    pulseSpeed: 0.004 + Math.random() * 0.006
+                };
+            }
+
+            function update() {
+                for (const b of blobs) {
+                    b.x += b.vx; b.y += b.vy;
+                    if (b.x < -b.r) b.x = width + b.r;
+                    if (b.x > width + b.r) b.x = -b.r;
+                    if (b.y < -b.r) b.y = height + b.r;
+                    if (b.y > height + b.r) b.y = -b.r;
+                    b.pulse += b.pulseSpeed;
+                }
+            }
+
+            function draw() {
+                ctx.fillStyle = '#f5f2ec';
+                ctx.fillRect(0, 0, width, height);
+                for (const b of blobs) {
+                    const pulseFactor = 1 + Math.sin(b.pulse) * 0.15;
+                    const r = b.r * pulseFactor;
+                    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+                    grad.addColorStop(0, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, ${b.alpha})`);
+                    grad.addColorStop(0.5, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, ${b.alpha * 0.4})`);
+                    grad.addColorStop(1, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, 0)`);
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function loop(now) {
+                if (now - lastTime >= FRAME_INTERVAL) {
+                    lastTime = now; update(); draw();
+                }
+                requestAnimationFrame(loop);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            requestAnimationFrame(loop);
+        })();
+
+        // ==================== УТИЛИТЫ ====================
+        const $ = (sel) => document.querySelector(sel);
+        const $$ = (sel) => document.querySelectorAll(sel);
+
+        function showToast(msg) {
+            const t = $('#toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        function throwConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti';
+            document.body.appendChild(container);
+            const colors = ['#a89b88', '#6b5f4f', '#d4c5a8', '#8a7a65', '#b8ab98', '#e8ddc5'];
+            for (let i = 0; i < 60; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.top = '-20px';
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+                piece.style.animationDelay = (Math.random() * 0.5) + 's';
+                if (Math.random() > 0.5) {
+                    piece.style.borderRadius = '50%';
+                    piece.style.width = '10px';
+                    piece.style.height = '10px';
+                }
+                container.appendChild(piece);
+            }
+            setTimeout(() => container.remove(), 4500);
+        }
+
+        function showSaveProgress() {
+            const bar = $('#saveProgress');
+            const fill = $('#saveProgressFill');
+            bar.classList.add('active');
+            let p = 0;
+            fill.style.width = '0%';
+            const iv = setInterval(() => {
+                p += 8 + Math.random() * 12;
+                if (p >= 100) {
+                    p = 100;
+                    fill.style.width = '100%';
+                    clearInterval(iv);
+                    setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; }, 400);
+                } else {
+                    fill.style.width = p + '%';
+                }
+            }, 100);
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s == null ? '' : String(s);
+            return div.innerHTML;
+        }
+
+        function whenFirebaseReady(cb) {
+            if (window.firebaseReady) { cb(); return; }
+            window.addEventListener('firebase-ready', cb, { once: true });
+        }
+
+        // ==================== СОСТОЯНИЕ ====================
+        const state = {
+            user: null,
+            quizzes: [],
+            unsubscribeResults: null
+        };
+
+        // ==================== СТАРТ ====================
+        whenFirebaseReady(() => {
+            if (checkHashForStudent()) return;
+
+            window.fb.onAuthChange((user) => {
+                state.user = user;
+                if (user) renderTeacherApp();
+                else renderAuthScreen();
+            });
+        });
+
+        // ==================== ПРОВЕРКА URL ====================
+        function checkHashForStudent() {
+            const hash = window.location.hash;
+            if (!hash) return false;
+
+            if (hash.startsWith('#quiz=')) {
+                const quizId = hash.slice(6);
+                loadQuizForStudent(quizId);
+                return true;
+            }
+            return false;
+        }
+
+        async function loadQuizForStudent(quizId) {
+            const appRoot = document.getElementById('appRoot');
+            appRoot.innerHTML = `
+                <div class="loading-screen">
+                    <div class="loading-spinner"></div>
+                    <div>Загружаем викторину...</div>
+                </div>
+            `;
+            const quiz = await window.fb.getQuiz(quizId);
+            if (!quiz) {
+                appRoot.innerHTML = `
+                    <div style="text-align:center; padding:3rem 1rem;">
+                        <div style="font-size:2rem; margin-bottom:1rem; opacity:0.4;">—</div>
+                        <div style="color:#8a7f70;">Викторина не найдена или удалена</div>
+                    </div>
+                `;
+                return;
+            }
+            showStudentFlow(quiz, quizId);
+        }
+
+        // ==================== ЭКРАН ВХОДА ====================
+        function renderAuthScreen() {
+            const appRoot = document.getElementById('appRoot');
+            appRoot.innerHTML = `
+                <div class="app-header">
+                    <h1>Конструктор викторин</h1>
+                    <div class="sub">войдите или создайте аккаунт учителя</div>
+                </div>
+                <div class="auth-wrap">
+                    <div class="auth-switch">
+                        <button class="active" id="switchLogin">Вход</button>
+                        <button id="switchRegister">Регистрация</button>
+                    </div>
+                    <h2 id="authTitle">С возвращением!</h2>
+                    <div class="auth-sub" id="authSub">Войдите в свой аккаунт</div>
+                    <div class="auth-error" id="authError"></div>
+                    <div class="auth-field" id="nameField" style="display:none;">
+                        <label>Ваше имя</label>
+                        <input type="text" id="authName" placeholder="Иванова Анна Петровна" maxlength="80">
+                    </div>
+                    <div class="auth-field">
+                        <label>Email</label>
+                        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label>Пароль</label>
+                        <input type="password" id="authPassword" placeholder="Минимум 6 символов" autocomplete="current-password">
+                    </div>
+                    <button class="btn btn-primary btn-block" id="authSubmit">Войти</button>
+                    <div class="auth-divider">или</div>
+                    <button class="btn btn-google" id="googleBtn">
+                        <svg viewBox="0 0 48 48">
+                            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.3-.1-3.5z"/>
+                            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C41 35.5 44 30.2 44 24c0-1.3-.1-2.3-.4-3.5z"/>
+                        </svg>
+                        Войти через Google
+                    </button>
+                </div>
+            `;
+
+            let mode = 'login';
+            const switchLogin = $('#switchLogin');
+            const switchRegister = $('#switchRegister');
+            const authError = $('#authError');
+            const authSubmit = $('#authSubmit');
+
+            function setMode(m) {
+                mode = m;
+                if (m === 'login') {
+                    switchLogin.classList.add('active');
+                    switchRegister.classList.remove('active');
+                    $('#authTitle').textContent = 'С возвращением!';
+                    $('#authSub').textContent = 'Войдите в свой аккаунт';
+                    $('#nameField').style.display = 'none';
+                    authSubmit.textContent = 'Войти';
+                } else {
+                    switchRegister.classList.add('active');
+                    switchLogin.classList.remove('active');
+                    $('#authTitle').textContent = 'Регистрация';
+                    $('#authSub').textContent = 'Создайте аккаунт учителя';
+                    $('#nameField').style.display = 'block';
+                    authSubmit.textContent = 'Создать аккаунт';
+                }
+                authError.classList.remove('show');
+            }
+
+            switchLogin.addEventListener('click', () => setMode('login'));
+            switchRegister.addEventListener('click', () => setMode('register'));
+
+            authSubmit.addEventListener('click', async () => {
+                const email = $('#authEmail').value.trim();
+                const password = $('#authPassword').value;
+                const name = $('#authName').value.trim();
+
+                if (!email || !password) {
+                    authError.textContent = 'Заполните email и пароль';
+                    authError.classList.add('show');
+                    return;
+                }
+                if (password.length < 6) {
+                    authError.textContent = 'Пароль должен быть не менее 6 символов';
+                    authError.classList.add('show');
+                    return;
+                }
+
+                authSubmit.disabled = true;
+                authSubmit.textContent = 'Подождите...';
+
+                const result = mode === 'login'
+                    ? await window.fb.login(email, password)
+                    : await window.fb.register(email, password, name);
+
+                authSubmit.disabled = false;
+                authSubmit.textContent = mode === 'login' ? 'Войти' : 'Создать аккаунт';
+
+                if (!result.ok) {
+                    authError.textContent = result.error;
+                    authError.classList.add('show');
+                }
+            });
+
+            $('#googleBtn').addEventListener('click', async () => {
+                authError.classList.remove('show');
+                const result = await window.fb.loginGoogle();
+                if (!result.ok) {
+                    authError.textContent = result.error;
+                    authError.classList.add('show');
+                }
+            });
+
+            ['authEmail', 'authPassword', 'authName'].forEach(id => {
+                const el = $('#' + id);
+                if (el) el.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') authSubmit.click();
+                });
+            });
+        }
+
+        // ==================== ПРИЛОЖЕНИЕ УЧИТЕЛЯ ====================
+        function renderTeacherApp() {
+            const appRoot = document.getElementById('appRoot');
+            const user = state.user;
+            const initial = (user.displayName || user.email || '?').trim().charAt(0).toUpperCase();
+
+            appRoot.innerHTML = `
+                <div class="app-header">
+                    <h1>Конструктор викторин</h1>
+                    <div class="sub">создавайте тесты и делитесь ссылками с учениками</div>
+                </div>
+
+                <div class="user-bar">
+                    <div class="user-info">
+                        <div class="user-avatar">${escapeHtml(initial)}</div>
+                        <div>
+                            <div class="user-email">${escapeHtml(user.displayName || user.email)}</div>
+                            <div class="user-role">Учитель</div>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn btn-secondary btn-small" id="logoutBtn">Выйти</button>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="create">Создать</button>
+                    <button class="tab-btn" data-tab="saved">Мои викторины</button>
+                    <button class="tab-btn" data-tab="students">Ученики</button>
+                    <button class="tab-btn" data-tab="help">Помощь</button>
+                </div>
+
+                <div class="panel active" id="panel-create">
+                    <div class="field">
+                        <label>Название викторины</label>
+                        <input type="text" id="quizTitle" placeholder="Например: Основы информатики — 8 класс" maxlength="120">
+                    </div>
+                    <div class="field">
+                        <label>Краткое описание (необязательно)</label>
+                        <textarea id="quizDesc" placeholder="Проверочная работа по теме «Алгоритмы»" maxlength="300"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>Количество вопросов</label>
+                            <input type="number" id="quizCount" min="1" max="50" value="3">
+                            <div class="hint">от 1 до 50</div>
+                        </div>
+                        <div class="field">
+                            <label>Имя учителя (необязательно)</label>
+                            <input type="text" id="teacherName" placeholder="Иванова А. П." maxlength="60" value="${escapeHtml(user.displayName || '')}">
+                        </div>
+                    </div>
+                    <div class="toggle-row on" id="studentModeRow">
+                        <div class="toggle-info">
+                            <div class="title">Режим учеников</div>
+                            <div class="desc">Ученик перед началом вводит имя и класс. Результат сохраняется в облаке.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="studentModeToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary btn-block" id="generateBtn">Создать форму вопросов</button>
+                    <div id="questionsWrap" style="margin-top: 1.5rem;"></div>
+                    <div id="linkSection" style="margin-top: 1.5rem; display: none;">
+                        <div style="padding-top: 1.2rem; border-top: 1px solid rgba(180, 170, 155, 0.3);">
+                            <label style="display:block; font-size:0.9rem; font-weight:600; color:#4a4238; margin-bottom:0.6rem;">
+                                Ссылка для учеников
+                            </label>
+                            <div class="link-box">
+                                <input type="text" id="shareLink" readonly>
+                                <button class="btn btn-primary btn-small" id="copyLinkBtn">Копировать</button>
+                                <button class="btn btn-secondary btn-small" id="openLinkBtn">Открыть</button>
+                            </div>
+                            <div class="hint">Отправьте ссылку ученикам. Они увидят форму с именем и пройдут викторину. Результаты появятся во вкладке «Ученики».</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="panel-saved">
+                    <div id="savedList"></div>
+                </div>
+
+                <div class="panel" id="panel-students">
+                    <div class="field">
+                        <label>Выберите викторину</label>
+                        <select id="studentQuizSelect" style="width:100%; padding:0.7rem 0.9rem; font-size:0.95rem; font-family:inherit; color:#3a3530; background:#fff; border:1px solid rgba(180,170,155,0.5); border-radius:0.5rem;">
+                            <option value="">— выберите —</option>
+                        </select>
+                    </div>
+                    <div id="studentsContent"></div>
+                </div>
+
+                <div class="panel" id="panel-help">
+                    <div style="max-width:640px; margin:0 auto;">
+                        <h2 style="font-family:'Unbounded',sans-serif; font-size:1.1rem; color:#4a4238; margin-bottom:1.2rem; text-transform:uppercase; letter-spacing:0.5px;">
+                            Как работает система
+                        </h2>
+                        <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35); margin-bottom:1rem;">
+                            <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">1. Создайте викторину</div>
+                            <div style="font-size:0.9rem; color:#6b5f4f;">Заполните вопросы, включите режим учеников и нажмите «Сохранить». Викторина загрузится в облако.</div>
+                        </div>
+                        <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35); margin-bottom:1rem;">
+                            <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">2. Отправьте ссылку</div>
+                            <div style="font-size:0.9rem; color:#6b5f4f;">Ученики открывают ссылку, вводят имя, проходят викторину. Результат сразу летит в облако.</div>
+                        </div>
+                        <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35);">
+                            <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">3. Смотрите результаты</div>
+                            <div style="font-size:0.9rem; color:#6b5f4f;">Во вкладке «Ученики» видны все прохождения в реальном времени — с любого устройства.</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#logoutBtn').addEventListener('click', async () => {
+                if (state.unsubscribeResults) { state.unsubscribeResults(); state.unsubscribeResults = null; }
+                await window.fb.logout();
+            });
+
+            $$('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+                    $$('.panel').forEach(p => p.classList.remove('active'));
+                    btn.classList.add('active');
+                    $('#panel-' + btn.dataset.tab).classList.add('active');
+                    if (btn.dataset.tab === 'saved') renderSavedList();
+                    if (btn.dataset.tab === 'students') renderStudentsPanel();
+                });
+            });
+
+            const toggle = $('#studentModeToggle');
+            const row = $('#studentModeRow');
+            function updateToggle() {
+                if (toggle.checked) row.classList.add('on');
+                else row.classList.remove('on');
+            }
+            toggle.addEventListener('change', updateToggle);
+            updateToggle();
+
+            $('#generateBtn').addEventListener('click', () => {
+                const title = $('#quizTitle').value.trim();
+                const count = parseInt($('#quizCount').value);
+                if (!title) { showToast('Введите название'); $('#quizTitle').focus(); return; }
+                if (!count || count < 1 || count > 50) { showToast('Количество вопросов: 1–50'); return; }
+                renderQuestionsForm(count);
+            });
+
+            loadQuizzes();
+        }
+
+        async function loadQuizzes() {
+            state.quizzes = await window.fb.getMyQuizzes();
+        }
+
+        // ==================== ФОРМА ВОПРОСОВ ====================
+        let questionsWrap, linkSection;
+
+        function renderQuestionsForm(count) {
+            questionsWrap = $('#questionsWrap');
+            linkSection = $('#linkSection');
+            questionsWrap.innerHTML = '';
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;';
+            header.innerHTML = `
+                <div style="font-family:'Unbounded',sans-serif; font-size:0.95rem; font-weight:600; color:#4a4238;">Вопросы: ${count}</div>
+                <button class="btn btn-secondary btn-small" id="saveBtn">Сохранить и получить ссылку</button>
+            `;
+            questionsWrap.appendChild(header);
+
+            for (let i = 0; i < count; i++) {
+                const card = createQuestionCard(i);
+                card.style.animationDelay = (i * 0.06) + 's';
+                questionsWrap.appendChild(card);
+            }
+
+            $('#saveBtn').addEventListener('click', saveQuizToCloud);
+            linkSection.style.display = 'none';
+            questionsWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function createQuestionCard(index) {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.dataset.index = index;
+
+            card.innerHTML = `
+                <div class="q-header">
+                    <span class="q-num">Вопрос ${index + 1}</span>
+                    <button class="btn btn-danger btn-small remove-btn">Удалить</button>
+                </div>
+                <div class="field" style="margin-bottom:0.8rem;">
+                    <input type="text" class="q-text" placeholder="Текст вопроса..." maxlength="300">
+                </div>
+                <div class="options-wrap">
+                    ${[0, 1, 2, 3].map(n => `
+                        <div class="option-row" style="animation-delay:${n * 0.05}s">
+                            <input type="radio" name="correct-${index}" value="${n}" ${n === 0 ? 'checked' : ''}>
+                            <input type="text" class="opt-text" placeholder="Вариант ${n + 1}" maxlength="200">
+                            ${n === 0 ? '<span class="correct-label">верный</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const radios = card.querySelectorAll(`input[name="correct-${index}"]`);
+            const labels = card.querySelectorAll('.correct-label');
+            radios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    labels.forEach(l => l.remove());
+                    const checked = card.querySelector(`input[name="correct-${index}"]:checked`);
+                    if (checked) {
+                        const row2 = checked.closest('.option-row');
+                        const span = document.createElement('span');
+                        span.className = 'correct-label';
+                        span.textContent = 'верный';
+                        row2.appendChild(span);
+                    }
+                });
+            });
+
+            card.querySelector('.remove-btn').addEventListener('click', () => {
+                card.style.transition = 'opacity 0.25s, transform 0.25s';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-20px)';
+                setTimeout(() => {
+                    card.remove();
+                    const cards = questionsWrap.querySelectorAll('.question-card');
+                    cards.forEach((c, i) => {
+                        c.dataset.index = i;
+                        c.querySelector('.q-num').textContent = `Вопрос ${i + 1}`;
+                        c.querySelectorAll('input[type="radio"]').forEach(r => { r.name = `correct-${i}`; });
+                    });
+                }, 250);
+            });
+
+            return card;
+        }
+
+        // ==================== СОХРАНЕНИЕ ====================
+        async function saveQuizToCloud() {
+            const title = $('#quizTitle').value.trim();
+            const desc = $('#quizDesc').value.trim();
+            const teacher = $('#teacherName').value.trim();
+            const studentMode = $('#studentModeToggle').checked;
+
+            if (!title) { showToast('Введите название'); return; }
+
+            const cards = questionsWrap.querySelectorAll('.question-card');
+            if (cards.length === 0) { showToast('Добавьте хотя бы один вопрос'); return; }
+
+            const questions = [];
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const text = card.querySelector('.q-text').value.trim();
+                const optInputs = card.querySelectorAll('.opt-text');
+                const options = Array.from(optInputs).map(inp => inp.value.trim());
+                const correctRadio = card.querySelector(`input[name="correct-${i}"]:checked`);
+                const correct = correctRadio ? parseInt(correctRadio.value) : 0;
+
+                if (!text) { showToast(`Заполните вопрос №${i + 1}`); card.querySelector('.q-text').focus(); return; }
+                const emptyOpt = options.findIndex(o => !o);
+                if (emptyOpt !== -1) { showToast(`Заполните все варианты в вопросе №${i + 1}`); optInputs[emptyOpt].focus(); return; }
+
+                questions.push({ text, options, correct });
+            }
+
+            showSaveProgress();
+
+            const result = await window.fb.saveQuiz({
+                title, desc, teacher, questions, studentMode
+            });
+
+            if (!result.ok) {
+                showToast('Ошибка сохранения: ' + result.error);
+                return;
+            }
+
+            const base = window.location.origin + window.location.pathname;
+            const link = base + '#quiz=' + result.id;
+            $('#shareLink').value = link;
+            linkSection.style.display = 'block';
+
+            showToast('Викторина сохранена в облаке!');
+            throwConfetti();
+            linkSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            await loadQuizzes();
+        }
+
+        // ==================== КОПИРОВАНИЕ ====================
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'copyLinkBtn') {
+                const input = $('#shareLink');
+                if (!input.value) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(input.value).then(() => showToast('Ссылка скопирована'))
+                    .catch(() => { input.select(); document.execCommand('copy'); showToast('Скопировано'); });
+                } else {
+                    input.select(); document.execCommand('copy'); showToast('Скопировано');
+                }
+            }
+            if (e.target.id === 'openLinkBtn') {
+                const link = $('#shareLink').value;
+                if (link) window.open(link, '_blank');
+            }
+        });
+
+        // ==================== СПИСОК ВИКТОРИН ====================
+        async function renderSavedList() {
+            const list = $('#savedList');
+            list.innerHTML = '<div class="loading-screen" style="padding:1.5rem 0;"><div class="loading-spinner" style="width:32px;height:32px;"></div></div>';
+
+            const quizzes = await window.fb.getMyQuizzes();
+            state.quizzes = quizzes;
+
+            if (quizzes.length === 0) {
+                list.innerHTML = '<div class="empty"><div class="big">—</div><div>Пока нет созданных викторин</div></div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            for (const quiz of quizzes) {
+                const item = document.createElement('div');
+                item.className = 'saved-item';
+                const date = quiz.createdAt
+                    ? new Date(quiz.createdAt.seconds * 1000).toLocaleDateString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })
+                    : '—';
+                item.innerHTML = `
+                    <div class="info">
+                        <div class="title">${escapeHtml(quiz.title)}</div>
+                        <div class="meta">${quiz.questions.length} вопр. · ${date}${quiz.teacher ? ' · ' + escapeHtml(quiz.teacher) : ''}${quiz.studentMode ? ' · <span style="color:#7a9a7a; font-weight:600;">режим учеников</span>' : ''}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary btn-small" data-action="link" data-id="${quiz.id}">Ссылка</button>
+                        <button class="btn btn-secondary btn-small" data-action="students" data-id="${quiz.id}">Ученики</button>
+                        <button class="btn btn-secondary btn-small" data-action="delete" data-id="${quiz.id}">Удалить</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+
+            list.querySelectorAll('button[data-action]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.id;
+                    const action = btn.dataset.action;
+
+                    if (action === 'link') {
+                        const base = window.location.origin + window.location.pathname;
+                        const link = base + '#quiz=' + id;
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(link).then(() => showToast('Ссылка скопирована'))
+                            .catch(() => prompt('Скопируйте:', link));
+                        } else {
+                            prompt('Скопируйте:', link);
+                        }
+                    } else if (action === 'students') {
+                        $$('.tab-btn').forEach(b => b.classList.remove('active'));
+                        $$('.panel').forEach(p => p.classList.remove('active'));
+                        document.querySelector('[data-tab="students"]').classList.add('active');
+                        $('#panel-students').classList.add('active');
+                        renderStudentsPanel(id);
+                    } else if (action === 'delete') {
+                        const quiz = state.quizzes.find(q => q.id === id);
+                        if (confirm('Удалить викторину «' + (quiz?.title || '') + '»?')) {
+                            const r = await window.fb.deleteQuiz(id);
+                            if (r.ok) { showToast('Удалено'); renderSavedList(); }
+                            else showToast('Ошибка: ' + r.error);
+                        }
+                    }
+                });
+            });
+        }
+
+        // ==================== ПАНЕЛЬ УЧЕНИКОВ ====================
+        async function renderStudentsPanel(preselectedId) {
+            const select = $('#studentQuizSelect');
+            const quizzes = await window.fb.getMyQuizzes();
+            state.quizzes = quizzes;
+
+            select.innerHTML = '<option value="">— выберите —</option>';
+            quizzes.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.id;
+                opt.textContent = q.title;
+                select.appendChild(opt);
+            });
+
+            if (preselectedId) select.value = preselectedId;
+            select.onchange = () => renderStudentsContent(select.value);
+
+            if (select.value) renderStudentsContent(select.value);
+            else $('#studentsContent').innerHTML = '<div class="empty"><div class="big">—</div><div>Выберите викторину</div></div>';
+        }
+
+        function renderStudentsContent(quizId) {
+            const content = $('#studentsContent');
+            if (!quizId) {
+                content.innerHTML = '<div class="empty"><div class="big">—</div><div>Выберите викторину</div></div>';
+                return;
+            }
+
+            if (state.unsubscribeResults) {
+                state.unsubscribeResults();
+                state.unsubscribeResults = null;
+            }
+
+            content.innerHTML = '<div class="loading-screen" style="padding:1.5rem 0;"><div class="loading-spinner" style="width:32px;height:32px;"></div><div style="font-size:0.85rem;">Загружаем...</div></div>';
+
+            state.unsubscribeResults = window.fb.subscribeResults(quizId, (results) => {
+                if (results.length === 0) {
+                    content.innerHTML = `
+                        <div class="empty">
+                            <div class="big">—</div>
+                            <div>Пока никто не прошёл</div>
+                            <div style="font-size:0.85rem; margin-top:0.5rem; color:#a89b88;">Отправьте ссылку из вкладки «Мои викторины»</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const total = results.length;
+                const avg = Math.round(results.reduce((s, r) => s + (r.percent || 0), 0) / total);
+                const best = Math.max(...results.map(r => r.percent || 0));
+                const worst = Math.min(...results.map(r => r.percent || 0));
+
+                let html = `
+                    <div class="students-summary">
+                        <div class="stat-card"><div class="value">${total}</div><div class="label">прошли</div></div>
+                        <div class="stat-card"><div class="value">${avg}%</div><div class="label">средний</div></div>
+                        <div class="stat-card"><div class="value">${best}%</div><div class="label">лучший</div></div>
+                        <div class="stat-card"><div class="value">${worst}%</div><div class="label">худший</div></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; flex-wrap:wrap; gap:0.5rem;">
+                        <div style="font-family:'Unbounded',sans-serif; font-size:0.9rem; font-weight:600; color:#4a4238;">Список учеников</div>
+                        <button class="btn btn-secondary btn-small" id="exportCsvBtn">Скачать CSV</button>
+                    </div>
+                `;
+
+                html += '<div id="studentsList">';
+                results.forEach((r, i) => {
+                    const pct = r.percent || 0;
+                    const cls = pct >= 80 ? 'good' : (pct >= 50 ? 'mid' : 'bad');
+                    const initial = (r.name || '?').trim().charAt(0).toUpperCase();
+                    const date = r.createdAt
+                        ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('ru-RU', {
+                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                        })
+                        : '—';
+                    html += `
+                        <div class="student-row" style="animation-delay:${i * 0.04}s">
+                            <div class="student-info">
+                                <div class="student-avatar">${escapeHtml(initial)}</div>
+                                <div>
+                                    <div class="student-name">${escapeHtml(r.name)}</div>
+                                    <div class="student-class">${r.studentClass ? escapeHtml(r.studentClass) + ' · ' : ''}<span class="student-date">${date}</span></div>
+                                </div>
+                            </div>
+                            <div class="student-score ${cls}">${r.score} / ${r.total} · ${pct}%</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                content.innerHTML = html;
+
+                $('#exportCsvBtn').addEventListener('click', () => {
+                    const rows = [['Имя', 'Класс', 'Правильных', 'Всего', 'Процент', 'Дата']];
+                    results.forEach(r => {
+                        const d = r.createdAt
+                            ? new Date(r.createdAt.seconds * 1000).toLocaleString('ru-RU')
+                            : '';
+                        rows.push([r.name, r.studentClass || '', r.score, r.total, (r.percent || 0) + '%', d]);
+                    });
+                    const csv = rows.map(row => row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+                    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'результаты.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('CSV скачан');
+                });
+            });
+        }
+
+        // ==================== ПРОХОЖДЕНИЕ ====================
+        function showStudentFlow(quiz, quizId) {
+            const appRoot = document.getElementById('appRoot');
+
+            if (quiz.studentMode) {
+                appRoot.innerHTML = `
+                    <div class="app-header">
+                        <h1>${escapeHtml(quiz.title)}</h1>
+                        <div class="sub">${quiz.teacher ? escapeHtml(quiz.teacher) + ' · ' : ''}${quiz.questions.length} вопросов</div>
+                    </div>
+                    <div class="student-form">
+                        <h2>Представьтесь</h2>
+                        <div class="sub">Перед началом викторины введите свои данные</div>
+                        <div class="field">
+                            <label>Имя и фамилия</label>
+                            <input type="text" id="studentName" placeholder="Иванов Иван" maxlength="80">
+                        </div>
+                        <div class="field">
+                            <label>Класс (необязательно)</label>
+                            <input type="text" id="studentClass" placeholder="8А" maxlength="20">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="startQuizBtn">Начать викторину</button>
+                    </div>
+                `;
+
+                $('#startQuizBtn').addEventListener('click', () => {
+                    const name = $('#studentName').value.trim();
+                    const studentClass = $('#studentClass').value.trim();
+                    if (!name) { showToast('Введите имя'); $('#studentName').focus(); return; }
+                    runQuizForStudent(quiz, quizId, name, studentClass);
+                });
+
+                $('#studentName').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') $('#startQuizBtn').click();
+                });
+            } else {
+                runQuizForStudent(quiz, quizId, '', '');
+            }
+        }
+
+        function runQuizForStudent(quiz, quizId, studentName, studentClass) {
+            const appRoot = document.getElementById('appRoot');
+
+            appRoot.innerHTML = `
+                <div class="app-header">
+                    <h1>${escapeHtml(quiz.title)}</h1>
+                    <div class="sub">
+                        ${studentName ? escapeHtml(studentName) + ' · ' : ''}
+                        ${quiz.teacher ? escapeHtml(quiz.teacher) + ' · ' : ''}
+                        ${quiz.questions.length} вопросов
+                    </div>
+                </div>
+                ${quiz.desc ? `<div style="text-align:center; color:#6b5f4f; margin-bottom:1.5rem; font-style:italic;">${escapeHtml(quiz.desc)}</div>` : ''}
+                <div id="runQuiz"></div>
+            `;
+
+            const runQuiz = document.getElementById('runQuiz');
+            let current = 0, score = 0, answered = false;
+
+            function renderQuestion() {
+                if (current >= quiz.questions.length) { renderResult(); return; }
+                const q = quiz.questions[current];
+                answered = false;
+
+                runQuiz.innerHTML = `
+                    <div style="font-family:'Unbounded',sans-serif; font-size:0.75rem; color:#8a7f70; margin-bottom:0.6rem; letter-spacing:1.5px; text-transform:uppercase;">
+                        Вопрос ${current + 1} из ${quiz.questions.length}
+                    </div>
+                    <div style="font-size:1.15rem; font-weight:600; color:#4a4238; margin-bottom:1.2rem; line-height:1.4;">
+                        ${escapeHtml(q.text)}
+                    </div>
+                    <div id="runOptions"></div>
+                    <div id="runFeedback" style="margin-top:1rem;"></div>
+                `;
+
+                const optionsWrap = document.getElementById('runOptions');
+                q.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-secondary btn-block';
+                    btn.style.cssText = 'text-align:left; justify-content:flex-start; margin-bottom:0.5rem; padding:0.9rem 1.2rem; font-weight:500;';
+                    btn.style.animation = 'cardSlideIn 0.4s ease both';
+                    btn.style.animationDelay = (idx * 0.06) + 's';
+                    btn.textContent = opt;
+                    btn.addEventListener('click', () => selectAnswer(idx));
+                    optionsWrap.appendChild(btn);
+                });
+            }
+
+            function selectAnswer(idx) {
+                if (answered) return;
+                answered = true;
+                const q = quiz.questions[current];
+                const buttons = document.querySelectorAll('#runOptions button');
+                buttons.forEach((btn, i) => {
+                    btn.disabled = true;
+                    if (i === q.correct) {
+                        btn.style.background = '#e6f0e6';
+                        btn.style.borderColor = '#7ba87b';
+                        btn.style.color = '#3a5a3a';
+                        btn.style.transform = 'translateX(6px)';
+                    } else if (i === idx && i !== q.correct) {
+                        btn.style.background = '#f5e6e6';
+                        btn.style.borderColor = '#c88a8a';
+                        btn.style.color = '#7a3a3a';
+                    }
+                });
+
+                const fb = document.getElementById('runFeedback');
+                if (idx === q.correct) {
+                    score++;
+                    fb.innerHTML = '<span style="color:#5a8a5a; font-weight:600;">Верно</span>';
+                } else {
+                    fb.innerHTML = `<span style="color:#a85a5a; font-weight:600;">Неверно. Правильный ответ: ${escapeHtml(q.options[q.correct])}</span>`;
+                }
+
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'btn btn-primary';
+                nextBtn.style.marginTop = '1rem';
+                nextBtn.textContent = (current + 1 >= quiz.questions.length) ? 'Показать результат' : 'Следующий вопрос →';
+                nextBtn.addEventListener('click', () => { current++; renderQuestion(); });
+                fb.appendChild(nextBtn);
+                nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            async function renderResult() {
+                const percent = Math.round((score / quiz.questions.length) * 100);
+                let grade = '', gradeColor = '';
+                if (percent === 100) { grade = 'Отлично! Все ответы верны.'; gradeColor = '#5a8a5a'; }
+                else if (percent >= 80) { grade = 'Хороший результат!'; gradeColor = '#5a8a5a'; }
+                else if (percent >= 50) { grade = 'Неплохо.'; gradeColor = '#a89b6a'; }
+                else { grade = 'Стоит повторить.'; gradeColor = '#a85a5a'; }
+
+                if (percent >= 80) throwConfetti();
+
+                let savedMsg = '';
+                if (studentName && quizId) {
+                    const r = await window.fb.saveResult(quizId, {
+                        name: studentName, studentClass,
+                        score, total: quiz.questions.length, percent
+                    });
+                    if (r.ok) savedMsg = '<div style="font-size:0.85rem; color:#7a9a7a; margin-bottom:1.5rem;">✓ Результат отправлен учителю</div>';
+                    else savedMsg = '<div style="font-size:0.85rem; color:#b85a5a; margin-bottom:1.5rem;">Не удалось сохранить</div>';
+                }
+
+                runQuiz.innerHTML = `
+                    <div style="text-align:center; padding:2rem 1rem; animation:panelIn 0.5s ease both;">
+                        <div style="font-family:'Unbounded',sans-serif; font-size:0.8rem; color:#8a7f70; text-transform:uppercase; letter-spacing:2px; margin-bottom:0.8rem;">Результат</div>
+                        ${studentName ? `<div style="font-size:1rem; color:#4a4238; margin-bottom:0.4rem;">${escapeHtml(studentName)}${studentClass ? ' · ' + escapeHtml(studentClass) : ''}</div>` : ''}
+                        <div style="font-family:'Unbounded',sans-serif; font-size:3rem; font-weight:700; color:#4a4238; margin-bottom:0.5rem;">${score} / ${quiz.questions.length}</div>
+                        <div style="font-size:1.3rem; color:#8a7f70; margin-bottom:1.5rem;">${percent}%</div>
+                        <div style="color:${gradeColor}; font-weight:600; font-size:1.05rem; margin-bottom:1.5rem;">${grade}</div>
+                        ${savedMsg}
+                        <button class="btn btn-primary" id="retryBtn">Пройти заново</button>
+                    </div>
+                `;
+
+                document.getElementById('retryBtn').addEventListener('click', () => {
+                    current = 0; score = 0; renderQuestion();
+                });
+            }
+
+            renderQuestion();
+        }
+    </script>
+</body>
+</html>
