@@ -36,7 +36,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ===== API в глобальное пространство =====
         window.fb = {
             auth, db,
 
@@ -158,6 +157,7 @@
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
 
         #bgCanvas {
@@ -205,6 +205,7 @@
             border: 1px solid rgba(180, 170, 155, 0.25);
             box-shadow: 0 12px 40px rgba(120, 110, 95, 0.1), 0 2px 8px rgba(120, 110, 95, 0.05);
             animation: appEnter 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
         }
 
         @keyframes appEnter {
@@ -246,6 +247,7 @@
             padding: 0.8rem 1.1rem;
             margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
             animation: panelIn 0.4s ease both;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
         }
 
         .user-info { display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 180px; }
@@ -268,6 +270,7 @@
             padding: 2rem 1.8rem;
             animation: panelIn 0.5s ease both;
             box-shadow: 0 8px 30px rgba(120, 110, 95, 0.08);
+            transition: background-color 0.4s ease, border-color 0.4s ease;
         }
         .auth-wrap h2 {
             font-family: 'Unbounded', sans-serif;
@@ -281,6 +284,7 @@
         .auth-switch {
             display: flex; gap: 0; margin-bottom: 1.5rem;
             background: #f0ece3; border-radius: 0.5rem; padding: 4px;
+            transition: background-color 0.4s ease;
         }
         .auth-switch button {
             flex: 1; background: transparent; border: none;
@@ -304,7 +308,7 @@
             color: #3a3530; background: #fff;
             border: 1px solid rgba(180, 170, 155, 0.5);
             border-radius: 0.5rem;
-            transition: border-color 0.15s, box-shadow 0.15s;
+            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.4s ease;
         }
         .auth-field input:focus {
             outline: none; border-color: #a89b88;
@@ -399,7 +403,7 @@
             font-size: 0.95rem; font-family: inherit; color: #3a3530;
             background: #ffffff; border: 1px solid rgba(180, 170, 155, 0.5);
             border-radius: 0.5rem;
-            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background-color 0.4s ease;
         }
         .field input:focus, .field textarea:focus {
             outline: none; border-color: #a89b88;
@@ -416,9 +420,9 @@
             transition: all 0.18s ease; letter-spacing: 0.2px;
             position: relative; overflow: hidden;
         }
-        .btn-primary { background: #6b5f4f; color: #fffdf8; }
+        .btn-primary { background: var(--quiz-accent, #6b5f4f); color: #fffdf8; }
         .btn-primary:hover {
-            background: #574b3d; transform: translateY(-2px);
+            filter: brightness(0.9); transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(107, 95, 79, 0.28);
         }
         .btn-secondary {
@@ -450,7 +454,7 @@
             border-radius: 0.7rem; padding: 1.1rem 1.2rem;
             margin-bottom: 0.9rem; position: relative;
             animation: cardSlideIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-            transition: box-shadow 0.15s, transform 0.15s;
+            transition: box-shadow 0.15s, transform 0.15s, background-color 0.4s ease, border-color 0.4s ease;
         }
         @keyframes cardSlideIn {
             from { opacity: 0; transform: translateX(-20px) scale(0.98); }
@@ -485,6 +489,7 @@
             border: 1px solid rgba(180, 170, 155, 0.45);
             border-radius: 0.4rem; background: #fff;
             font-family: inherit; color: #3a3530;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
         }
         .option-row input[type="text"]:focus {
             outline: none; border-color: #a89b88;
@@ -509,6 +514,7 @@
             border-radius: 0.6rem; padding: 1rem 1.2rem;
             margin: 1rem 0; display: flex; align-items: center;
             gap: 0.7rem; flex-wrap: wrap;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
         }
         .link-box input {
             flex: 1; min-width: 200px; padding: 0.65rem 0.9rem;
@@ -525,7 +531,7 @@
             margin-bottom: 0.7rem;
             display: flex; justify-content: space-between;
             align-items: center; gap: 0.8rem; flex-wrap: wrap;
-            transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+            transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.4s ease;
             animation: cardSlideIn 0.4s ease both;
         }
         .saved-item:hover {
@@ -628,7 +634,7 @@
             transition: transform 0.25s;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
-        .switch input:checked + .slider { background-color: #6b5f4f; }
+        .switch input:checked + .slider { background-color: var(--quiz-accent, #6b5f4f); }
         .switch input:checked + .slider::before { transform: translateX(24px); }
 
         .students-summary { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
@@ -637,7 +643,7 @@
             background: #fdfbf6;
             border: 1px solid rgba(180, 170, 155, 0.35);
             border-radius: 0.6rem; padding: 0.9rem 1rem; text-align: center;
-            transition: transform 0.15s, box-shadow 0.15s;
+            transition: transform 0.15s, box-shadow 0.15s, background-color 0.4s ease, border-color 0.4s ease;
         }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(120, 110, 95, 0.08); }
         .stat-card .value {
@@ -660,7 +666,7 @@
             display: flex; justify-content: space-between;
             align-items: center; gap: 1rem; flex-wrap: wrap;
             animation: cardSlideIn 0.35s ease both;
-            transition: background 0.15s, transform 0.15s;
+            transition: background 0.15s, transform 0.15s, border-color 0.4s ease;
         }
         .student-row:hover { background: #faf7f0; transform: translateX(3px); }
         .student-info { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 0.8rem; }
@@ -695,6 +701,206 @@
             font-size: 0.9rem; margin-bottom: 1.8rem;
         }
 
+        /* ==================== КАСТОМИЗАЦИЯ: ТЕМЫ И АНИМАЦИИ ==================== */
+        .custom-section {
+            background: #fdfbf6;
+            border: 1px solid rgba(180, 170, 155, 0.35);
+            border-radius: 0.7rem;
+            padding: 1.1rem 1.2rem;
+            margin-bottom: 1.3rem;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+        .custom-section-title {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.8rem; font-weight: 600;
+            color: #4a4238; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 0.9rem;
+        }
+        .swatch-row {
+            display: flex; gap: 0.6rem; flex-wrap: wrap;
+        }
+        .theme-swatch {
+            width: 58px; height: 58px; border-radius: 0.65rem;
+            border: 3px solid transparent; cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+            position: relative; overflow: hidden;
+            flex-shrink: 0;
+        }
+        .theme-swatch:hover { transform: translateY(-3px) scale(1.05); }
+        .theme-swatch.active {
+            border-color: #4a4238;
+            box-shadow: 0 4px 14px rgba(74, 66, 56, 0.25);
+        }
+        .theme-swatch.active::after {
+            content: '✓'; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 1.2rem;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+        .accent-swatch {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: 3px solid transparent; cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+            position: relative; flex-shrink: 0;
+        }
+        .accent-swatch:hover { transform: scale(1.12); }
+        .accent-swatch.active {
+            border-color: #4a4238;
+            box-shadow: 0 3px 10px rgba(74, 66, 56, 0.3);
+        }
+        .accent-swatch.active::after {
+            content: '✓'; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 0.95rem;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .anim-option {
+            padding: 0.7rem 1rem; border-radius: 0.5rem;
+            border: 2px solid rgba(180, 170, 155, 0.45);
+            background: #fff; cursor: pointer;
+            transition: all 0.18s ease; flex: 1; min-width: 120px;
+            text-align: center;
+        }
+        .anim-option:hover { border-color: #a89b88; transform: translateY(-1px); }
+        .anim-option.active {
+            border-color: var(--quiz-accent, #6b5f4f);
+            background: rgba(107, 95, 79, 0.06);
+            box-shadow: 0 2px 8px rgba(107, 95, 79, 0.12);
+        }
+        .anim-option .anim-name {
+            font-weight: 700; font-size: 0.88rem; color: #4a4238;
+            margin-bottom: 0.15rem;
+        }
+        .anim-option .anim-desc {
+            font-size: 0.72rem; color: #8a7f70; line-height: 1.3;
+        }
+
+        /* Темы фона */
+        body[data-theme="warm"] { background: #f5f2ec; }
+        body[data-theme="warm"] .bg-gradient { display: block; }
+
+        body[data-theme="cool"] { background: #eef2f7; }
+        body[data-theme="cool"] .bg-gradient { display: none; }
+
+        body[data-theme="mint"] { background: #eaf4ee; }
+        body[data-theme="mint"] .bg-gradient { display: none; }
+
+        body[data-theme="lavender"] { background: #f0ecf7; }
+        body[data-theme="lavender"] .bg-gradient { display: none; }
+
+        body[data-theme="sunset"] { background: #fdf0e6; }
+        body[data-theme="sunset"] .bg-gradient { display: none; }
+
+        body[data-theme="dark"] { background: #2b2a28; color: #e8e2d8; }
+        body[data-theme="dark"] .bg-gradient { display: none; }
+        body[data-theme="dark"] .app {
+            background: rgba(48, 46, 43, 0.94);
+            border-color: rgba(120, 110, 95, 0.4);
+        }
+        body[data-theme="dark"] .app-header h1 {
+            background: linear-gradient(135deg, #e8ddc5 0%, #c9bba0 50%, #f5efe3 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body[data-theme="dark"] .app-header .sub,
+        body[data-theme="dark"] .hint { color: #b8ab98; }
+        body[data-theme="dark"] .user-bar,
+        body[data-theme="dark"] .auth-wrap,
+        body[data-theme="dark"] .question-card,
+        body[data-theme="dark"] .saved-item,
+        body[data-theme="dark"] .toggle-row,
+        body[data-theme="dark"] .stat-card,
+        body[data-theme="dark"] .student-row,
+        body[data-theme="dark"] .link-box,
+        body[data-theme="dark"] .custom-section {
+            background: #3a3835;
+            border-color: rgba(150, 140, 125, 0.3);
+        }
+        body[data-theme="dark"] .toggle-row.on {
+            background: #45423e;
+            border-color: rgba(200, 185, 160, 0.4);
+        }
+        body[data-theme="dark"] .field input,
+        body[data-theme="dark"] .field textarea,
+        body[data-theme="dark"] .auth-field input,
+        body[data-theme="dark"] .option-row input[type="text"],
+        body[data-theme="dark"] select {
+            background: #45423e; color: #e8e2d8;
+            border-color: rgba(150, 140, 125, 0.45);
+        }
+        body[data-theme="dark"] .anim-option {
+            background: #45423e;
+            border-color: rgba(150, 140, 125, 0.45);
+        }
+        body[data-theme="dark"] .anim-option.active {
+            background: rgba(200, 185, 160, 0.12);
+            border-color: var(--quiz-accent, #c9bba0);
+        }
+        body[data-theme="dark"] .tab-btn { color: #b8ab98; }
+        body[data-theme="dark"] .tab-btn.active { color: #f0e8d8; border-bottom-color: #e8ddc5; }
+        body[data-theme="dark"] .user-email,
+        body[data-theme="dark"] .field label,
+        body[data-theme="dark"] .toggle-info .title,
+        body[data-theme="dark"] .saved-item .info .title,
+        body[data-theme="dark"] .student-name,
+        body[data-theme="dark"] .stat-card .value,
+        body[data-theme="dark"] .anim-option .anim-name,
+        body[data-theme="dark"] .custom-section-title {
+            color: #f0e8d8;
+        }
+        body[data-theme="dark"] .user-role,
+        body[data-theme="dark"] .toggle-info .desc,
+        body[data-theme="dark"] .saved-item .info .meta,
+        body[data-theme="dark"] .student-class,
+        body[data-theme="dark"] .stat-card .label,
+        body[data-theme="dark"] .anim-option .anim-desc {
+            color: #b8ab98;
+        }
+        body[data-theme="dark"] .auth-switch { background: #45423e; }
+        body[data-theme="dark"] .auth-switch button { color: #b8ab98; }
+        body[data-theme="dark"] .auth-switch button.active { background: #55514b; color: #f0e8d8; }
+        body[data-theme="dark"] .btn-secondary { color: #e8ddc5; border-color: #8a7a65; }
+        body[data-theme="dark"] .btn-google { background: #45423e; color: #e8e2d8; border-color: rgba(150,140,125,0.45); }
+        body[data-theme="dark"] .link-box input { background: #45423e; color: #e8e2d8; }
+        body[data-theme="dark"] .theme-swatch.active { border-color: #e8ddc5; }
+        body[data-theme="dark"] .accent-swatch.active { border-color: #e8ddc5; }
+        body[data-theme="dark"] .saved-item:hover,
+        body[data-theme="dark"] .student-row:hover { background: #45423e; }
+        body[data-theme="dark"] .bgCanvas { opacity: 0.3; }
+
+        /* Анимации вопросов для ученика */
+        .anim-slide .question-anim {
+            animation: qSlideIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+        }
+        .anim-fade .question-anim {
+            animation: qFadeIn 0.6s ease both;
+        }
+        .anim-zoom .question-anim {
+            animation: qZoomIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+        }
+        .anim-flip .question-anim {
+            animation: qFlipIn 0.65s cubic-bezier(0.4, 0.0, 0.2, 1) both;
+            transform-origin: center;
+        }
+        .anim-none .question-anim { animation: none; }
+
+        @keyframes qSlideIn {
+            from { opacity: 0; transform: translateX(-40px) scale(0.97); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes qFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes qZoomIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes qFlipIn {
+            from { opacity: 0; transform: perspective(800px) rotateY(75deg); }
+            to { opacity: 1; transform: perspective(800px) rotateY(0deg); }
+        }
+
         @media (max-width: 600px) {
             body { padding: 0.7rem; }
             .app { padding: 1.2rem 1rem 1.6rem; }
@@ -705,10 +911,12 @@
             .saved-item { padding: 0.8rem; }
             .student-score { font-size: 0.95rem; padding: 0.3rem 0.7rem; }
             .auth-wrap { padding: 1.4rem 1.2rem; }
+            .theme-swatch { width: 48px; height: 48px; }
+            .accent-swatch { width: 38px; height: 38px; }
         }
     </style>
 </head>
-<body>
+<body data-theme="warm" class="anim-slide">
     <canvas id="bgCanvas"></canvas>
     <div class="bg-gradient"></div>
 
@@ -871,11 +1079,62 @@
             window.addEventListener('firebase-ready', cb, { once: true });
         }
 
+        function hexToRgba(hex, alpha) {
+            const h = hex.replace('#', '');
+            const r = parseInt(h.substring(0, 2), 16);
+            const g = parseInt(h.substring(2, 4), 16);
+            const b = parseInt(h.substring(4, 6), 16);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        // ==================== ТЕМЫ И АНИМАЦИИ ====================
+        const QUIZ_THEMES = [
+            { id: 'warm',     label: 'Тёплая',     preview: 'linear-gradient(135deg,#f5f2ec,#e8ddc5)', accent: '#6b5f4f' },
+            { id: 'cool',     label: 'Холодная',   preview: 'linear-gradient(135deg,#eef2f7,#cdd8e6)', accent: '#4f5f7a' },
+            { id: 'mint',     label: 'Мятная',     preview: 'linear-gradient(135deg,#eaf4ee,#c8e6d4)', accent: '#3f7a5a' },
+            { id: 'lavender', label: 'Лавандовая', preview: 'linear-gradient(135deg,#f0ecf7,#d8cce8)', accent: '#6a5a8a' },
+            { id: 'sunset',   label: 'Закат',      preview: 'linear-gradient(135deg,#fdf0e6,#f7d4b8)', accent: '#a86a4a' },
+            { id: 'dark',     label: 'Тёмная',     preview: 'linear-gradient(135deg,#2b2a28,#45423e)', accent: '#c9bba0' }
+        ];
+
+        const ACCENT_COLORS = [
+            '#6b5f4f', '#4f5f7a', '#3f7a5a', '#6a5a8a',
+            '#a86a4a', '#b85a5a', '#7a6a3a', '#4a4238'
+        ];
+
+        const QUIZ_ANIMATIONS = [
+            { id: 'slide', label: 'Выезд',        desc: 'Вопрос выезжает сбоку' },
+            { id: 'fade',  label: 'Плавно',       desc: 'Мягкое появление' },
+            { id: 'zoom',  label: 'Увеличение',   desc: 'Появление из центра' },
+            { id: 'flip',  label: 'Переворот',    desc: '3D-переворот карточки' },
+            { id: 'none',  label: 'Без анимации', desc: 'Мгновенная смена' }
+        ];
+
+        function applyTheme(themeId) {
+            const t = QUIZ_THEMES.find(x => x.id === themeId) || QUIZ_THEMES[0];
+            document.body.setAttribute('data-theme', t.id);
+        }
+
+        function applyAccent(accent) {
+            if (!accent) return;
+            document.documentElement.style.setProperty('--quiz-accent', accent);
+            document.documentElement.style.setProperty('--quiz-accent-soft', hexToRgba(accent, 0.12));
+        }
+
+        function applyAnimation(animId) {
+            const valid = QUIZ_ANIMATIONS.some(a => a.id === animId) ? animId : 'slide';
+            document.body.classList.remove('anim-slide', 'anim-fade', 'anim-zoom', 'anim-flip', 'anim-none');
+            document.body.classList.add('anim-' + valid);
+        }
+
         // ==================== СОСТОЯНИЕ ====================
         const state = {
             user: null,
             quizzes: [],
-            unsubscribeResults: null
+            unsubscribeResults: null,
+            theme: 'warm',
+            accent: '#6b5f4f',
+            animation: 'slide'
         };
 
         // ==================== СТАРТ ====================
@@ -920,11 +1179,21 @@
                 `;
                 return;
             }
+
+            // Применяем сохранённые тему и анимацию
+            if (quiz.theme) applyTheme(quiz.theme);
+            if (quiz.accent) applyAccent(quiz.accent);
+            if (quiz.animation) applyAnimation(quiz.animation);
+
             showStudentFlow(quiz, quizId);
         }
 
         // ==================== ЭКРАН ВХОДА ====================
         function renderAuthScreen() {
+            applyTheme('warm');
+            applyAccent('#6b5f4f');
+            applyAnimation('slide');
+
             const appRoot = document.getElementById('appRoot');
             appRoot.innerHTML = `
                 <div class="app-header">
@@ -1095,6 +1364,23 @@
                             <input type="text" id="teacherName" placeholder="Иванова А. П." maxlength="60" value="${escapeHtml(user.displayName || '')}">
                         </div>
                     </div>
+
+                    <!-- ===== КАСТОМИЗАЦИЯ ===== -->
+                    <div class="custom-section">
+                        <div class="custom-section-title">Фон викторины</div>
+                        <div class="swatch-row" id="themeSwatches"></div>
+                    </div>
+
+                    <div class="custom-section">
+                        <div class="custom-section-title">Акцентный цвет (кнопки, переключатели)</div>
+                        <div class="swatch-row" id="accentSwatches"></div>
+                    </div>
+
+                    <div class="custom-section">
+                        <div class="custom-section-title">Анимация вопросов для ученика</div>
+                        <div class="swatch-row" id="animSwatches" style="gap:0.5rem;"></div>
+                    </div>
+
                     <div class="toggle-row on" id="studentModeRow">
                         <div class="toggle-info">
                             <div class="title">Режим учеников</div>
@@ -1143,11 +1429,11 @@
                         </h2>
                         <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35); margin-bottom:1rem;">
                             <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">1. Создайте викторину</div>
-                            <div style="font-size:0.9rem; color:#6b5f4f;">Заполните вопросы, включите режим учеников и нажмите «Сохранить». Викторина загрузится в облако.</div>
+                            <div style="font-size:0.9rem; color:#6b5f4f;">Заполните вопросы, выберите фон, акцентный цвет и анимацию, включите режим учеников и нажмите «Сохранить».</div>
                         </div>
                         <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35); margin-bottom:1rem;">
                             <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">2. Отправьте ссылку</div>
-                            <div style="font-size:0.9rem; color:#6b5f4f;">Ученики открывают ссылку, вводят имя, проходят викторину. Результат сразу летит в облако.</div>
+                            <div style="font-size:0.9rem; color:#6b5f4f;">Ученики открывают ссылку, вводят имя, проходят викторину. Оформление и анимация применяются автоматически.</div>
                         </div>
                         <div style="background:#fdfbf6; border-radius:0.6rem; padding:1.2rem 1.4rem; border:1px solid rgba(180,170,155,0.35);">
                             <div style="font-weight:600; color:#4a4238; margin-bottom:0.5rem;">3. Смотрите результаты</div>
@@ -1156,6 +1442,13 @@
                     </div>
                 </div>
             `;
+
+            // Применяем текущую тему
+            applyTheme(state.theme);
+            applyAccent(state.accent);
+            applyAnimation(state.animation);
+
+            renderCustomizationControls();
 
             $('#logoutBtn').addEventListener('click', async () => {
                 if (state.unsubscribeResults) { state.unsubscribeResults(); state.unsubscribeResults = null; }
@@ -1191,6 +1484,72 @@
             });
 
             loadQuizzes();
+        }
+
+        // ==================== КОНТРОЛЫ КАСТОМИЗАЦИИ ====================
+        function renderCustomizationControls() {
+            // Темы
+            const themeWrap = $('#themeSwatches');
+            themeWrap.innerHTML = QUIZ_THEMES.map(t => `
+                <div class="theme-swatch ${state.theme === t.id ? 'active' : ''}"
+                     data-theme-id="${t.id}"
+                     title="${t.label}"
+                     style="background:${t.preview};"></div>
+            `).join('');
+            themeWrap.querySelectorAll('.theme-swatch').forEach(el => {
+                el.addEventListener('click', () => {
+                    state.theme = el.dataset.themeId;
+                    themeWrap.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+                    el.classList.add('active');
+                    applyTheme(state.theme);
+                    const preset = QUIZ_THEMES.find(x => x.id === state.theme);
+                    if (preset) {
+                        state.accent = preset.accent;
+                        const accentWrap = $('#accentSwatches');
+                        if (accentWrap) {
+                            accentWrap.querySelectorAll('.accent-swatch').forEach(s => {
+                                s.classList.toggle('active', s.dataset.accent === state.accent);
+                            });
+                        }
+                        applyAccent(state.accent);
+                    }
+                });
+            });
+
+            // Акцент
+            const accentWrap = $('#accentSwatches');
+            accentWrap.innerHTML = ACCENT_COLORS.map(c => `
+                <div class="accent-swatch ${state.accent === c ? 'active' : ''}"
+                     data-accent="${c}"
+                     title="${c}"
+                     style="background:${c};"></div>
+            `).join('');
+            accentWrap.querySelectorAll('.accent-swatch').forEach(el => {
+                el.addEventListener('click', () => {
+                    state.accent = el.dataset.accent;
+                    accentWrap.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('active'));
+                    el.classList.add('active');
+                    applyAccent(state.accent);
+                });
+            });
+
+            // Анимации
+            const animWrap = $('#animSwatches');
+            animWrap.innerHTML = QUIZ_ANIMATIONS.map(a => `
+                <div class="anim-option ${state.animation === a.id ? 'active' : ''}"
+                     data-anim-id="${a.id}">
+                    <div class="anim-name">${a.label}</div>
+                    <div class="anim-desc">${a.desc}</div>
+                </div>
+            `).join('');
+            animWrap.querySelectorAll('.anim-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    state.animation = el.dataset.animId;
+                    animWrap.querySelectorAll('.anim-option').forEach(s => s.classList.remove('active'));
+                    el.classList.add('active');
+                    applyAnimation(state.animation);
+                });
+            });
         }
 
         async function loadQuizzes() {
@@ -1312,7 +1671,10 @@
             showSaveProgress();
 
             const result = await window.fb.saveQuiz({
-                title, desc, teacher, questions, studentMode
+                title, desc, teacher, questions, studentMode,
+                theme: state.theme,
+                accent: state.accent,
+                animation: state.animation
             });
 
             if (!result.ok) {
@@ -1372,10 +1734,12 @@
                         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     })
                     : '—';
+                const themeLabel = (QUIZ_THEMES.find(t => t.id === quiz.theme) || QUIZ_THEMES[0]).label;
+                const animLabel = (QUIZ_ANIMATIONS.find(a => a.id === quiz.animation) || QUIZ_ANIMATIONS[0]).label;
                 item.innerHTML = `
                     <div class="info">
                         <div class="title">${escapeHtml(quiz.title)}</div>
-                        <div class="meta">${quiz.questions.length} вопр. · ${date}${quiz.teacher ? ' · ' + escapeHtml(quiz.teacher) : ''}${quiz.studentMode ? ' · <span style="color:#7a9a7a; font-weight:600;">режим учеников</span>' : ''}</div>
+                        <div class="meta">${quiz.questions.length} вопр. · ${date}${quiz.teacher ? ' · ' + escapeHtml(quiz.teacher) : ''}${quiz.studentMode ? ' · <span style="color:#7a9a7a; font-weight:600;">режим учеников</span>' : ''} · ${themeLabel} · ${animLabel}</div>
                     </div>
                     <div class="actions">
                         <button class="btn btn-secondary btn-small" data-action="link" data-id="${quiz.id}">Ссылка</button>
@@ -1541,7 +1905,7 @@
                         <h1>${escapeHtml(quiz.title)}</h1>
                         <div class="sub">${quiz.teacher ? escapeHtml(quiz.teacher) + ' · ' : ''}${quiz.questions.length} вопросов</div>
                     </div>
-                    <div class="student-form">
+                    <div class="student-form question-anim">
                         <h2>Представьтесь</h2>
                         <div class="sub">Перед началом викторины введите свои данные</div>
                         <div class="field">
@@ -1596,14 +1960,16 @@
                 answered = false;
 
                 runQuiz.innerHTML = `
-                    <div style="font-family:'Unbounded',sans-serif; font-size:0.75rem; color:#8a7f70; margin-bottom:0.6rem; letter-spacing:1.5px; text-transform:uppercase;">
-                        Вопрос ${current + 1} из ${quiz.questions.length}
+                    <div class="question-anim">
+                        <div style="font-family:'Unbounded',sans-serif; font-size:0.75rem; color:#8a7f70; margin-bottom:0.6rem; letter-spacing:1.5px; text-transform:uppercase;">
+                            Вопрос ${current + 1} из ${quiz.questions.length}
+                        </div>
+                        <div style="font-size:1.15rem; font-weight:600; color:#4a4238; margin-bottom:1.2rem; line-height:1.4;">
+                            ${escapeHtml(q.text)}
+                        </div>
+                        <div id="runOptions"></div>
+                        <div id="runFeedback" style="margin-top:1rem;"></div>
                     </div>
-                    <div style="font-size:1.15rem; font-weight:600; color:#4a4238; margin-bottom:1.2rem; line-height:1.4;">
-                        ${escapeHtml(q.text)}
-                    </div>
-                    <div id="runOptions"></div>
-                    <div id="runFeedback" style="margin-top:1rem;"></div>
                 `;
 
                 const optionsWrap = document.getElementById('runOptions');
@@ -1676,7 +2042,7 @@
                 }
 
                 runQuiz.innerHTML = `
-                    <div style="text-align:center; padding:2rem 1rem; animation:panelIn 0.5s ease both;">
+                    <div class="question-anim" style="text-align:center; padding:2rem 1rem;">
                         <div style="font-family:'Unbounded',sans-serif; font-size:0.8rem; color:#8a7f70; text-transform:uppercase; letter-spacing:2px; margin-bottom:0.8rem;">Результат</div>
                         ${studentName ? `<div style="font-size:1rem; color:#4a4238; margin-bottom:0.4rem;">${escapeHtml(studentName)}${studentClass ? ' · ' + escapeHtml(studentClass) : ''}</div>` : ''}
                         <div style="font-family:'Unbounded',sans-serif; font-size:3rem; font-weight:700; color:#4a4238; margin-bottom:0.5rem;">${score} / ${quiz.questions.length}</div>
