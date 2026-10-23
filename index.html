@@ -148,56 +148,48 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100%; min-height: 100%; }
 
+        :root {
+            --quiz-accent: #6b5f4f;
+            --quiz-accent-soft: rgba(107, 95, 79, 0.12);
+            --bg-color: #f5f2ec;
+            --doodle-color: rgba(107, 95, 79, 0.18);
+        }
+
         body {
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-            background: #f5f2ec;
+            background: var(--bg-color);
             color: #3a3530;
             padding: 1.5rem;
             line-height: 1.55;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
-            transition: background-color 0.4s ease, color 0.4s ease;
+            transition: background-color 0.45s ease, color 0.45s ease;
         }
 
-        #bgCanvas {
+        /* ===== ДУДЛ-ФОН (сзади всего) ===== */
+        #doodleCanvas {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 0; pointer-events: none;
+            transition: opacity 0.45s ease;
         }
 
-        .bg-gradient {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 1; pointer-events: none;
-            animation: bgShift 24s ease-in-out infinite alternate;
-        }
+        /* ===== ТЕМЫ ФОНА (реально работают) ===== */
+        body[data-theme="warm"]     { --bg-color: #f5f2ec; --doodle-color: rgba(107, 95, 79, 0.18); color: #3a3530; }
+        body[data-theme="cool"]     { --bg-color: #eef2f7; --doodle-color: rgba(79, 95, 122, 0.18); color: #2f3a4a; }
+        body[data-theme="mint"]     { --bg-color: #eaf4ee; --doodle-color: rgba(63, 122, 90, 0.18); color: #2f4a3a; }
+        body[data-theme="lavender"] { --bg-color: #f0ecf7; --doodle-color: rgba(106, 90, 138, 0.18); color: #3f3550; }
+        body[data-theme="sunset"]   { --bg-color: #fdf0e6; --doodle-color: rgba(168, 106, 74, 0.18); color: #4a352a; }
+        body[data-theme="dark"]     { --bg-color: #2b2a28; --doodle-color: rgba(201, 187, 160, 0.16); color: #e8e2d8; }
 
-        @keyframes bgShift {
-            0%, 100% {
-                background:
-                    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255, 240, 220, 0.75) 0%, transparent 60%),
-                    radial-gradient(ellipse 70% 70% at 80% 80%, rgba(230, 235, 240, 0.65) 0%, transparent 60%),
-                    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245, 240, 230, 0.5) 0%, transparent 70%);
-            }
-            50% {
-                background:
-                    radial-gradient(ellipse 85% 65% at 70% 30%, rgba(240, 230, 225, 0.75) 0%, transparent 60%),
-                    radial-gradient(ellipse 65% 75% at 30% 70%, rgba(245, 245, 240, 0.65) 0%, transparent 60%),
-                    radial-gradient(ellipse 65% 55% at 60% 40%, rgba(235, 230, 220, 0.5) 0%, transparent 70%);
-            }
-            100% {
-                background:
-                    radial-gradient(ellipse 75% 65% at 40% 80%, rgba(250, 235, 215, 0.75) 0%, transparent 60%),
-                    radial-gradient(ellipse 80% 60% at 60% 20%, rgba(235, 238, 242, 0.65) 0%, transparent 60%),
-                    radial-gradient(ellipse 70% 60% at 30% 50%, rgba(240, 240, 235, 0.5) 0%, transparent 70%);
-            }
-        }
+        /* В тёмной теме дудлы чуть ярче для контраста */
+        body[data-theme="dark"] #doodleCanvas { opacity: 1; }
 
         .app {
             position: relative; z-index: 2;
             max-width: 920px; margin: 0 auto;
-            background: rgba(255, 253, 248, 0.9);
+            background: rgba(255, 253, 248, 0.92);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
             border-radius: 1.2rem;
@@ -205,7 +197,7 @@
             border: 1px solid rgba(180, 170, 155, 0.25);
             box-shadow: 0 12px 40px rgba(120, 110, 95, 0.1), 0 2px 8px rgba(120, 110, 95, 0.05);
             animation: appEnter 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
 
         @keyframes appEnter {
@@ -224,11 +216,17 @@
             font-size: 2.6rem; font-weight: 800;
             letter-spacing: -0.5px; line-height: 1.1;
             margin-bottom: 0.5rem; text-transform: uppercase;
-            background: linear-gradient(135deg, #6b5f4f 0%, #8a7a65 50%, #4a4238 100%);
+            background: linear-gradient(135deg, var(--quiz-accent) 0%, #8a7a65 50%, #4a4238 100%);
             -webkit-background-clip: text; background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: titleShimmer 8s ease-in-out infinite;
             background-size: 200% 200%;
+        }
+
+        body[data-theme="dark"] .app-header h1 {
+            background: linear-gradient(135deg, #e8ddc5 0%, #c9bba0 50%, #f5efe3 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         @keyframes titleShimmer {
@@ -247,13 +245,13 @@
             padding: 0.8rem 1.1rem;
             margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
             animation: panelIn 0.4s ease both;
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
 
         .user-info { display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 180px; }
         .user-avatar {
             width: 40px; height: 40px; border-radius: 50%;
-            background: linear-gradient(135deg, #6b5f4f, #8a7a65);
+            background: linear-gradient(135deg, var(--quiz-accent), #8a7a65);
             color: #fffdf8;
             display: flex; align-items: center; justify-content: center;
             font-weight: 700; font-size: 1rem; flex-shrink: 0;
@@ -270,7 +268,7 @@
             padding: 2rem 1.8rem;
             animation: panelIn 0.5s ease both;
             box-shadow: 0 8px 30px rgba(120, 110, 95, 0.08);
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
         .auth-wrap h2 {
             font-family: 'Unbounded', sans-serif;
@@ -284,7 +282,7 @@
         .auth-switch {
             display: flex; gap: 0; margin-bottom: 1.5rem;
             background: #f0ece3; border-radius: 0.5rem; padding: 4px;
-            transition: background-color 0.4s ease;
+            transition: background-color 0.45s ease;
         }
         .auth-switch button {
             flex: 1; background: transparent; border: none;
@@ -308,7 +306,7 @@
             color: #3a3530; background: #fff;
             border: 1px solid rgba(180, 170, 155, 0.5);
             border-radius: 0.5rem;
-            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.4s ease;
+            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.45s ease;
         }
         .auth-field input:focus {
             outline: none; border-color: #a89b88;
@@ -352,7 +350,7 @@
         .loading-spinner {
             width: 44px; height: 44px; border-radius: 50%;
             border: 3px solid rgba(107, 95, 79, 0.15);
-            border-top-color: #6b5f4f;
+            border-top-color: var(--quiz-accent);
             margin: 0 auto 1rem;
             animation: spin 1s linear infinite;
         }
@@ -372,11 +370,11 @@
             margin-bottom: -1px; position: relative;
         }
         .tab-btn:hover { color: #4a4238; }
-        .tab-btn.active { color: #4a4238; border-bottom-color: #8a7f70; font-weight: 600; }
+        .tab-btn.active { color: #4a4238; border-bottom-color: var(--quiz-accent); font-weight: 600; }
         .tab-btn.active::after {
             content: ''; position: absolute; bottom: -3px; left: 50%;
             transform: translateX(-50%); width: 6px; height: 6px;
-            background: #8a7f70; border-radius: 50%;
+            background: var(--quiz-accent); border-radius: 50%;
             animation: dotPulse 1.6s ease-in-out infinite;
         }
         @keyframes dotPulse {
@@ -403,7 +401,7 @@
             font-size: 0.95rem; font-family: inherit; color: #3a3530;
             background: #ffffff; border: 1px solid rgba(180, 170, 155, 0.5);
             border-radius: 0.5rem;
-            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background-color 0.4s ease;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background-color 0.45s ease;
         }
         .field input:focus, .field textarea:focus {
             outline: none; border-color: #a89b88;
@@ -420,18 +418,18 @@
             transition: all 0.18s ease; letter-spacing: 0.2px;
             position: relative; overflow: hidden;
         }
-        .btn-primary { background: var(--quiz-accent, #6b5f4f); color: #fffdf8; }
+        .btn-primary { background: var(--quiz-accent); color: #fffdf8; }
         .btn-primary:hover {
             filter: brightness(0.9); transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(107, 95, 79, 0.28);
         }
         .btn-secondary {
-            background: transparent; color: #6b5f4f;
+            background: transparent; color: var(--quiz-accent);
             border: 1.5px solid #b8ab98;
         }
         .btn-secondary:hover {
             background: rgba(184, 171, 152, 0.12);
-            border-color: #6b5f4f; transform: translateY(-1px);
+            border-color: var(--quiz-accent); transform: translateY(-1px);
         }
         .btn-danger {
             background: transparent; color: #b85a5a;
@@ -443,18 +441,12 @@
         .btn-block { width: 100%; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-        #generateBtn { animation: btnGlow 3s ease-in-out infinite; }
-        @keyframes btnGlow {
-            0%, 100% { box-shadow: 0 0 0 rgba(107, 95, 79, 0); }
-            50% { box-shadow: 0 0 24px rgba(107, 95, 79, 0.35); }
-        }
-
         .question-card {
             background: #fdfbf6; border: 1px solid rgba(180, 170, 155, 0.35);
             border-radius: 0.7rem; padding: 1.1rem 1.2rem;
             margin-bottom: 0.9rem; position: relative;
             animation: cardSlideIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-            transition: box-shadow 0.15s, transform 0.15s, background-color 0.4s ease, border-color 0.4s ease;
+            transition: box-shadow 0.15s, transform 0.15s, background-color 0.45s ease, border-color 0.45s ease;
         }
         @keyframes cardSlideIn {
             from { opacity: 0; transform: translateX(-20px) scale(0.98); }
@@ -480,7 +472,7 @@
             to { opacity: 1; transform: translateX(0); }
         }
         .option-row input[type="radio"] {
-            width: 18px; height: 18px; accent-color: #6b5f4f;
+            width: 18px; height: 18px; accent-color: var(--quiz-accent);
             cursor: pointer; flex-shrink: 0; transition: transform 0.15s;
         }
         .option-row input[type="radio"]:checked { transform: scale(1.15); }
@@ -489,7 +481,7 @@
             border: 1px solid rgba(180, 170, 155, 0.45);
             border-radius: 0.4rem; background: #fff;
             font-family: inherit; color: #3a3530;
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
         .option-row input[type="text"]:focus {
             outline: none; border-color: #a89b88;
@@ -497,16 +489,16 @@
         }
 
         .correct-label {
-            font-size: 0.7rem; color: #7a9a7a; white-space: nowrap;
+            font-size: 0.7rem; color: var(--quiz-accent); white-space: nowrap;
             text-transform: uppercase; letter-spacing: 0.5px;
             font-weight: 700; padding: 0.15rem 0.5rem;
-            background: rgba(122, 154, 122, 0.12);
+            background: var(--quiz-accent-soft);
             border-radius: 0.3rem;
             animation: correctPulse 1.8s ease-in-out infinite;
         }
         @keyframes correctPulse {
-            0%, 100% { transform: scale(1); background: rgba(122, 154, 122, 0.12); }
-            50% { transform: scale(1.08); background: rgba(122, 154, 122, 0.22); }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
         }
 
         .link-box {
@@ -514,7 +506,7 @@
             border-radius: 0.6rem; padding: 1rem 1.2rem;
             margin: 1rem 0; display: flex; align-items: center;
             gap: 0.7rem; flex-wrap: wrap;
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
         .link-box input {
             flex: 1; min-width: 200px; padding: 0.65rem 0.9rem;
@@ -531,7 +523,7 @@
             margin-bottom: 0.7rem;
             display: flex; justify-content: space-between;
             align-items: center; gap: 0.8rem; flex-wrap: wrap;
-            transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.4s ease;
+            transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.45s ease;
             animation: cardSlideIn 0.4s ease both;
         }
         .saved-item:hover {
@@ -556,28 +548,24 @@
         .toast {
             position: fixed; bottom: 24px; left: 50%;
             transform: translateX(-50%) translateY(20px);
-            background: #6b5f4f; color: #fffdf8;
+            background: var(--quiz-accent); color: #fffdf8;
             padding: 0.75rem 1.5rem; border-radius: 2rem;
             font-size: 0.9rem; font-weight: 500;
             box-shadow: 0 8px 24px rgba(107, 95, 79, 0.35);
             opacity: 0; pointer-events: none;
             transition: opacity 0.3s ease, transform 0.3s ease;
-            z-index: 1000;
+            z-index: 1000; max-width: 90vw; text-align: center;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        .confetti {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none; z-index: 999; overflow: hidden;
+        /* ===== НОВЫЕ ЧАСТИЦЫ ПРИ ПРАВИЛЬНОМ ОТВЕТЕ ===== */
+        .particles {
+            position: fixed; inset: 0; pointer-events: none;
+            z-index: 999; overflow: hidden;
         }
-        .confetti-piece {
-            position: absolute; width: 8px; height: 14px; opacity: 0.9;
-            animation: confettiFall linear forwards;
-        }
-        @keyframes confettiFall {
-            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        .particle {
+            position: absolute; pointer-events: none;
+            will-change: transform, opacity;
         }
 
         .save-progress {
@@ -588,7 +576,7 @@
         .save-progress.active { opacity: 1; }
         .save-progress-fill {
             height: 100%; width: 0%;
-            background: linear-gradient(90deg, #a89b88, #6b5f4f, #a89b88);
+            background: linear-gradient(90deg, var(--quiz-accent-soft), var(--quiz-accent), var(--quiz-accent-soft));
             background-size: 200% 100%;
             animation: progressShimmer 1.4s linear infinite;
             transition: width 0.15s linear;
@@ -634,7 +622,7 @@
             transition: transform 0.25s;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
-        .switch input:checked + .slider { background-color: var(--quiz-accent, #6b5f4f); }
+        .switch input:checked + .slider { background-color: var(--quiz-accent); }
         .switch input:checked + .slider::before { transform: translateX(24px); }
 
         .students-summary { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
@@ -643,7 +631,7 @@
             background: #fdfbf6;
             border: 1px solid rgba(180, 170, 155, 0.35);
             border-radius: 0.6rem; padding: 0.9rem 1rem; text-align: center;
-            transition: transform 0.15s, box-shadow 0.15s, background-color 0.4s ease, border-color 0.4s ease;
+            transition: transform 0.15s, box-shadow 0.15s, background-color 0.45s ease, border-color 0.45s ease;
         }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(120, 110, 95, 0.08); }
         .stat-card .value {
@@ -666,7 +654,7 @@
             display: flex; justify-content: space-between;
             align-items: center; gap: 1rem; flex-wrap: wrap;
             animation: cardSlideIn 0.35s ease both;
-            transition: background 0.15s, transform 0.15s, border-color 0.4s ease;
+            transition: background 0.15s, transform 0.15s, border-color 0.45s ease;
         }
         .student-row:hover { background: #faf7f0; transform: translateX(3px); }
         .student-info { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 0.8rem; }
@@ -701,6 +689,68 @@
             font-size: 0.9rem; margin-bottom: 1.8rem;
         }
 
+        /* ==================== ПАМЯТКА / ТУЛТИП ==================== */
+        [data-tip] { position: relative; }
+        [data-tip]::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px) scale(0.96);
+            background: #2f2b26;
+            color: #f5efe3;
+            font-size: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            line-height: 1.35;
+            padding: 0.5rem 0.7rem;
+            border-radius: 0.45rem;
+            width: max-content;
+            max-width: 240px;
+            text-align: left;
+            white-space: normal;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 50;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+        [data-tip]::before {
+            content: '';
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #2f2b26;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+            z-index: 50;
+        }
+        [data-tip]:hover::after,
+        [data-tip]:hover::before,
+        [data-tip]:focus-visible::after,
+        [data-tip]:focus-visible::before {
+            opacity: 1;
+        }
+        [data-tip]:hover::after {
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        /* Тултип снизу для элементов у верха экрана */
+        [data-tip-pos="bottom"]::after {
+            bottom: auto; top: calc(100% + 10px);
+            transform: translateX(-50%) translateY(-4px) scale(0.96);
+        }
+        [data-tip-pos="bottom"]::before {
+            bottom: auto; top: calc(100% + 4px);
+            border-top-color: transparent;
+            border-bottom-color: #2f2b26;
+        }
+        [data-tip-pos="bottom"]:hover::after {
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
         /* ==================== КАСТОМИЗАЦИЯ: ТЕМЫ И АНИМАЦИИ ==================== */
         .custom-section {
             background: #fdfbf6;
@@ -708,13 +758,23 @@
             border-radius: 0.7rem;
             padding: 1.1rem 1.2rem;
             margin-bottom: 1.3rem;
-            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.45s ease, border-color 0.45s ease;
         }
         .custom-section-title {
             font-family: 'Unbounded', sans-serif;
             font-size: 0.8rem; font-weight: 600;
             color: #4a4238; text-transform: uppercase;
             letter-spacing: 1px; margin-bottom: 0.9rem;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .custom-section-title .info-dot {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--quiz-accent-soft);
+            color: var(--quiz-accent);
+            font-size: 0.7rem; font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: help;
         }
         .swatch-row {
             display: flex; gap: 0.6rem; flex-wrap: wrap;
@@ -763,8 +823,8 @@
         }
         .anim-option:hover { border-color: #a89b88; transform: translateY(-1px); }
         .anim-option.active {
-            border-color: var(--quiz-accent, #6b5f4f);
-            background: rgba(107, 95, 79, 0.06);
+            border-color: var(--quiz-accent);
+            background: var(--quiz-accent-soft);
             box-shadow: 0 2px 8px rgba(107, 95, 79, 0.12);
         }
         .anim-option .anim-name {
@@ -775,35 +835,11 @@
             font-size: 0.72rem; color: #8a7f70; line-height: 1.3;
         }
 
-        /* Темы фона */
-        body[data-theme="warm"] { background: #f5f2ec; }
-        body[data-theme="warm"] .bg-gradient { display: block; }
-
-        body[data-theme="cool"] { background: #eef2f7; }
-        body[data-theme="cool"] .bg-gradient { display: none; }
-
-        body[data-theme="mint"] { background: #eaf4ee; }
-        body[data-theme="mint"] .bg-gradient { display: none; }
-
-        body[data-theme="lavender"] { background: #f0ecf7; }
-        body[data-theme="lavender"] .bg-gradient { display: none; }
-
-        body[data-theme="sunset"] { background: #fdf0e6; }
-        body[data-theme="sunset"] .bg-gradient { display: none; }
-
-        body[data-theme="dark"] { background: #2b2a28; color: #e8e2d8; }
-        body[data-theme="dark"] .bg-gradient { display: none; }
+        /* Тёмная тема — карточки/панели */
         body[data-theme="dark"] .app {
             background: rgba(48, 46, 43, 0.94);
             border-color: rgba(120, 110, 95, 0.4);
         }
-        body[data-theme="dark"] .app-header h1 {
-            background: linear-gradient(135deg, #e8ddc5 0%, #c9bba0 50%, #f5efe3 100%);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        body[data-theme="dark"] .app-header .sub,
-        body[data-theme="dark"] .hint { color: #b8ab98; }
         body[data-theme="dark"] .user-bar,
         body[data-theme="dark"] .auth-wrap,
         body[data-theme="dark"] .question-card,
@@ -824,7 +860,8 @@
         body[data-theme="dark"] .field textarea,
         body[data-theme="dark"] .auth-field input,
         body[data-theme="dark"] .option-row input[type="text"],
-        body[data-theme="dark"] select {
+        body[data-theme="dark"] select,
+        body[data-theme="dark"] .link-box input {
             background: #45423e; color: #e8e2d8;
             border-color: rgba(150, 140, 125, 0.45);
         }
@@ -833,11 +870,11 @@
             border-color: rgba(150, 140, 125, 0.45);
         }
         body[data-theme="dark"] .anim-option.active {
-            background: rgba(200, 185, 160, 0.12);
-            border-color: var(--quiz-accent, #c9bba0);
+            background: rgba(200, 185, 160, 0.14);
+            border-color: var(--quiz-accent);
         }
         body[data-theme="dark"] .tab-btn { color: #b8ab98; }
-        body[data-theme="dark"] .tab-btn.active { color: #f0e8d8; border-bottom-color: #e8ddc5; }
+        body[data-theme="dark"] .tab-btn.active { color: #f0e8d8; border-bottom-color: var(--quiz-accent); }
         body[data-theme="dark"] .user-email,
         body[data-theme="dark"] .field label,
         body[data-theme="dark"] .toggle-info .title,
@@ -853,7 +890,8 @@
         body[data-theme="dark"] .saved-item .info .meta,
         body[data-theme="dark"] .student-class,
         body[data-theme="dark"] .stat-card .label,
-        body[data-theme="dark"] .anim-option .anim-desc {
+        body[data-theme="dark"] .anim-option .anim-desc,
+        body[data-theme="dark"] .hint {
             color: #b8ab98;
         }
         body[data-theme="dark"] .auth-switch { background: #45423e; }
@@ -861,23 +899,15 @@
         body[data-theme="dark"] .auth-switch button.active { background: #55514b; color: #f0e8d8; }
         body[data-theme="dark"] .btn-secondary { color: #e8ddc5; border-color: #8a7a65; }
         body[data-theme="dark"] .btn-google { background: #45423e; color: #e8e2d8; border-color: rgba(150,140,125,0.45); }
-        body[data-theme="dark"] .link-box input { background: #45423e; color: #e8e2d8; }
-        body[data-theme="dark"] .theme-swatch.active { border-color: #e8ddc5; }
-        body[data-theme="dark"] .accent-swatch.active { border-color: #e8ddc5; }
         body[data-theme="dark"] .saved-item:hover,
         body[data-theme="dark"] .student-row:hover { background: #45423e; }
-        body[data-theme="dark"] .bgCanvas { opacity: 0.3; }
+        body[data-theme="dark"] .theme-swatch.active { border-color: #e8ddc5; }
+        body[data-theme="dark"] .accent-swatch.active { border-color: #e8ddc5; }
 
         /* Анимации вопросов для ученика */
-        .anim-slide .question-anim {
-            animation: qSlideIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-        }
-        .anim-fade .question-anim {
-            animation: qFadeIn 0.6s ease both;
-        }
-        .anim-zoom .question-anim {
-            animation: qZoomIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-        }
+        .anim-slide .question-anim { animation: qSlideIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+        .anim-fade .question-anim { animation: qFadeIn 0.6s ease both; }
+        .anim-zoom .question-anim { animation: qZoomIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
         .anim-flip .question-anim {
             animation: qFlipIn 0.65s cubic-bezier(0.4, 0.0, 0.2, 1) both;
             transform-origin: center;
@@ -901,10 +931,12 @@
             to { opacity: 1; transform: perspective(800px) rotateY(0deg); }
         }
 
+        /* ==================== МОБИЛЬНАЯ АДАПТАЦИЯ ==================== */
         @media (max-width: 600px) {
             body { padding: 0.7rem; }
-            .app { padding: 1.2rem 1rem 1.6rem; }
+            .app { padding: 1.2rem 1rem 1.6rem; border-radius: 1rem; }
             .app-header h1 { font-size: 1.7rem; }
+            .app-header .sub { font-size: 0.8rem; }
             .tab-btn { padding: 0.6rem 0.8rem; font-size: 0.85rem; }
             .question-card { padding: 0.9rem; }
             .option-row input[type="text"] { font-size: 0.85rem; }
@@ -913,12 +945,34 @@
             .auth-wrap { padding: 1.4rem 1.2rem; }
             .theme-swatch { width: 48px; height: 48px; }
             .accent-swatch { width: 38px; height: 38px; }
+            .anim-option { min-width: 100px; padding: 0.6rem 0.7rem; }
+            .anim-option .anim-desc { display: none; }
+            .custom-section { padding: 0.9rem 1rem; }
+            .toast { font-size: 0.82rem; padding: 0.65rem 1.1rem; bottom: 16px; }
+            .row > * { min-width: 140px; }
+            .user-email { font-size: 0.82rem; }
+
+            /* На мобилке тултипы появляются по тапу — увеличиваем зону и шрифт */
+            [data-tip]::after { font-size: 0.72rem; max-width: 200px; }
+        }
+
+        @media (max-width: 380px) {
+            .app-header h1 { font-size: 1.45rem; }
+            .theme-swatch { width: 42px; height: 42px; }
+            .accent-swatch { width: 34px; height: 34px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body data-theme="warm" class="anim-slide">
-    <canvas id="bgCanvas"></canvas>
-    <div class="bg-gradient"></div>
+    <canvas id="doodleCanvas"></canvas>
 
     <div class="save-progress" id="saveProgress">
         <div class="save-progress-fill" id="saveProgressFill"></div>
@@ -934,84 +988,212 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // ==================== ФОН ====================
+        // ==================== ДУДЛ-ФОН (оптимизированный, рисуется 1 раз) ====================
         (function() {
-            const canvas = document.getElementById('bgCanvas');
+            const canvas = document.getElementById('doodleCanvas');
             const ctx = canvas.getContext('2d');
-            let width, height, blobs = [];
-            const BLOB_COUNT = 6;
-            const TARGET_FPS = 24;
-            const FRAME_INTERVAL = 1000 / TARGET_FPS;
-            let lastTime = 0;
+            let width = 0, height = 0, dpr = 1;
+            let doodles = [];
+            let resizeTimer = null;
 
-            const COLORS = [
-                { r: 245, g: 235, b: 220 }, { r: 235, g: 230, b: 225 },
-                { r: 240, g: 240, b: 235 }, { r: 250, g: 245, b: 235 },
-                { r: 230, g: 228, b: 225 }, { r: 248, g: 242, b: 230 }
-            ];
+            // Базовые цвета для дудлов (зависят от темы)
+            const THEME_DOODLE_COLORS = {
+                warm:     '#6b5f4f',
+                cool:     '#4f5f7a',
+                mint:     '#3f7a5a',
+                lavender: '#6a5a8a',
+                sunset:   '#a86a4a',
+                dark:     '#c9bba0'
+            };
+
+            // Типы дудлов
+            const DOODLE_TYPES = ['star', 'circle', 'wave', 'plus', 'triangle', 'heart', 'spiral', 'bolt', 'dots'];
+
+            function currentTheme() {
+                return document.body.getAttribute('data-theme') || 'warm';
+            }
+
+            function currentDoodleColor(alpha) {
+                const theme = currentTheme();
+                const base = THEME_DOODLE_COLORS[theme] || '#6b5f4f';
+                const h = base.replace('#', '');
+                const r = parseInt(h.substring(0, 2), 16);
+                const g = parseInt(h.substring(2, 4), 16);
+                const b = parseInt(h.substring(4, 6), 16);
+                return `rgba(${r},${g},${b},${alpha})`;
+            }
 
             function resize() {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
-                if (blobs.length === 0) initBlobs();
+                dpr = Math.min(window.devicePixelRatio || 1, 2);
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                buildDoodles();
+                drawDoodles();
             }
 
-            function initBlobs() {
-                blobs = [];
-                for (let i = 0; i < BLOB_COUNT; i++) blobs.push(createBlob());
-            }
+            function buildDoodles() {
+                // Плотность зависит от площади экрана, но с потолком
+                const area = width * height;
+                const isMobile = width < 600;
+                let count = Math.floor(area / (isMobile ? 16000 : 14000));
+                count = Math.max(14, Math.min(count, isMobile ? 40 : 70));
 
-            function createBlob() {
-                const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                return {
-                    x: Math.random() * width, y: Math.random() * height,
-                    r: 180 + Math.random() * 220,
-                    vx: (Math.random() - 0.5) * 0.25,
-                    vy: (Math.random() - 0.5) * 0.25,
-                    color, alpha: 0.55 + Math.random() * 0.25,
-                    pulse: Math.random() * Math.PI * 2,
-                    pulseSpeed: 0.004 + Math.random() * 0.006
-                };
-            }
-
-            function update() {
-                for (const b of blobs) {
-                    b.x += b.vx; b.y += b.vy;
-                    if (b.x < -b.r) b.x = width + b.r;
-                    if (b.x > width + b.r) b.x = -b.r;
-                    if (b.y < -b.r) b.y = height + b.r;
-                    if (b.y > height + b.r) b.y = -b.r;
-                    b.pulse += b.pulseSpeed;
+                doodles = [];
+                for (let i = 0; i < count; i++) {
+                    const type = DOODLE_TYPES[Math.floor(Math.random() * DOODLE_TYPES.length)];
+                    const size = (isMobile ? 10 : 14) + Math.random() * (isMobile ? 18 : 26);
+                    doodles.push({
+                        type,
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        size,
+                        rot: Math.random() * Math.PI * 2,
+                        alpha: 0.10 + Math.random() * 0.18,
+                        strokeWidth: 1 + Math.random() * 1.5
+                    });
                 }
             }
 
-            function draw() {
-                ctx.fillStyle = '#f5f2ec';
-                ctx.fillRect(0, 0, width, height);
-                for (const b of blobs) {
-                    const pulseFactor = 1 + Math.sin(b.pulse) * 0.15;
-                    const r = b.r * pulseFactor;
-                    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
-                    grad.addColorStop(0, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, ${b.alpha})`);
-                    grad.addColorStop(0.5, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, ${b.alpha * 0.4})`);
-                    grad.addColorStop(1, `rgba(${b.color.r}, ${b.color.g}, ${b.color.b}, 0)`);
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-                    ctx.fill();
+            function drawDoodles() {
+                ctx.clearRect(0, 0, width, height);
+                for (const d of doodles) {
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.strokeStyle = currentDoodleColor(d.alpha);
+                    ctx.fillStyle = currentDoodleColor(d.alpha * 0.85);
+                    ctx.lineWidth = d.strokeWidth;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    drawOne(d);
+                    ctx.restore();
                 }
             }
 
-            function loop(now) {
-                if (now - lastTime >= FRAME_INTERVAL) {
-                    lastTime = now; update(); draw();
+            function drawOne(d) {
+                const s = d.size;
+                switch (d.type) {
+                    case 'star': {
+                        const spikes = 5;
+                        const outer = s / 2;
+                        const inner = outer * 0.45;
+                        ctx.beginPath();
+                        for (let i = 0; i < spikes * 2; i++) {
+                            const r = i % 2 === 0 ? outer : inner;
+                            const a = (i * Math.PI) / spikes - Math.PI / 2;
+                            const px = Math.cos(a) * r;
+                            const py = Math.sin(a) * r;
+                            if (i === 0) ctx.moveTo(px, py);
+                            else ctx.lineTo(px, py);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                        break;
+                    }
+                    case 'circle':
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s / 2, 0, Math.PI * 2);
+                        ctx.stroke();
+                        break;
+                    case 'wave': {
+                        ctx.beginPath();
+                        const w = s;
+                        const amp = s * 0.22;
+                        ctx.moveTo(-w / 2, 0);
+                        for (let x = -w / 2; x <= w / 2; x += 2) {
+                            const y = Math.sin((x / w) * Math.PI * 2) * amp;
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                        break;
+                    }
+                    case 'plus':
+                        ctx.beginPath();
+                        ctx.moveTo(-s / 2, 0); ctx.lineTo(s / 2, 0);
+                        ctx.moveTo(0, -s / 2); ctx.lineTo(0, s / 2);
+                        ctx.stroke();
+                        break;
+                    case 'triangle':
+                        ctx.beginPath();
+                        ctx.moveTo(0, -s / 2);
+                        ctx.lineTo(s / 2, s / 2);
+                        ctx.lineTo(-s / 2, s / 2);
+                        ctx.closePath();
+                        ctx.stroke();
+                        break;
+                    case 'heart': {
+                        const k = s / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(0, k * 0.35);
+                        ctx.bezierCurveTo(0, -k * 0.2, -k, -k * 0.2, -k, k * 0.25);
+                        ctx.bezierCurveTo(-k, k * 0.75, 0, k, 0, k * 1.05);
+                        ctx.bezierCurveTo(0, k, k, k * 0.75, k, k * 0.25);
+                        ctx.bezierCurveTo(k, -k * 0.2, 0, -k * 0.2, 0, k * 0.35);
+                        ctx.closePath();
+                        ctx.stroke();
+                        break;
+                    }
+                    case 'spiral': {
+                        ctx.beginPath();
+                        const turns = 2.5;
+                        const steps = 24;
+                        for (let i = 0; i <= steps; i++) {
+                            const t = i / steps;
+                            const a = t * Math.PI * 2 * turns;
+                            const r = (s / 2) * t;
+                            const px = Math.cos(a) * r;
+                            const py = Math.sin(a) * r;
+                            if (i === 0) ctx.moveTo(px, py);
+                            else ctx.lineTo(px, py);
+                        }
+                        ctx.stroke();
+                        break;
+                    }
+                    case 'bolt': {
+                        ctx.beginPath();
+                        ctx.moveTo(s * 0.1, -s / 2);
+                        ctx.lineTo(-s * 0.25, s * 0.05);
+                        ctx.lineTo(0, s * 0.05);
+                        ctx.lineTo(-s * 0.1, s / 2);
+                        ctx.lineTo(s * 0.28, -s * 0.02);
+                        ctx.lineTo(0, -s * 0.02);
+                        ctx.closePath();
+                        ctx.stroke();
+                        break;
+                    }
+                    case 'dots': {
+                        const n = 3;
+                        const gap = s * 0.35;
+                        for (let i = 0; i < n; i++) {
+                            ctx.beginPath();
+                            ctx.arc((i - 1) * gap, 0, s * 0.09, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        break;
+                    }
                 }
-                requestAnimationFrame(loop);
             }
 
-            window.addEventListener('resize', resize);
+            function scheduleResize() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(resize, 120);
+            }
+
+            window.addEventListener('resize', scheduleResize);
+            window.addEventListener('orientationchange', scheduleResize);
+
+            // Перерисовка при смене темы (цвет дудлов)
+            window.addEventListener('doodle-theme-changed', drawDoodles);
+
             resize();
-            requestAnimationFrame(loop);
+
+            // Экспортируем хелпер для внешних вызовов
+            window.redrawDoodles = drawDoodles;
         })();
 
         // ==================== УТИЛИТЫ ====================
@@ -1024,48 +1206,6 @@
             t.classList.add('show');
             clearTimeout(t._timeout);
             t._timeout = setTimeout(() => t.classList.remove('show'), 2600);
-        }
-
-        function throwConfetti() {
-            const container = document.createElement('div');
-            container.className = 'confetti';
-            document.body.appendChild(container);
-            const colors = ['#a89b88', '#6b5f4f', '#d4c5a8', '#8a7a65', '#b8ab98', '#e8ddc5'];
-            for (let i = 0; i < 60; i++) {
-                const piece = document.createElement('div');
-                piece.className = 'confetti-piece';
-                piece.style.left = Math.random() * 100 + '%';
-                piece.style.top = '-20px';
-                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
-                piece.style.animationDelay = (Math.random() * 0.5) + 's';
-                if (Math.random() > 0.5) {
-                    piece.style.borderRadius = '50%';
-                    piece.style.width = '10px';
-                    piece.style.height = '10px';
-                }
-                container.appendChild(piece);
-            }
-            setTimeout(() => container.remove(), 4500);
-        }
-
-        function showSaveProgress() {
-            const bar = $('#saveProgress');
-            const fill = $('#saveProgressFill');
-            bar.classList.add('active');
-            let p = 0;
-            fill.style.width = '0%';
-            const iv = setInterval(() => {
-                p += 8 + Math.random() * 12;
-                if (p >= 100) {
-                    p = 100;
-                    fill.style.width = '100%';
-                    clearInterval(iv);
-                    setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; }, 400);
-                } else {
-                    fill.style.width = p + '%';
-                }
-            }, 100);
         }
 
         function escapeHtml(s) {
@@ -1087,32 +1227,165 @@
             return `rgba(${r},${g},${b},${alpha})`;
         }
 
+        // ==================== НОВЫЕ ЧАСТИЦЫ ====================
+        const isMobileDevice = () => window.matchMedia('(max-width: 600px)').matches;
+        const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function spawnParticles(originEl, opts = {}) {
+            if (prefersReducedMotion()) return;
+            const container = document.createElement('div');
+            container.className = 'particles';
+            document.body.appendChild(container);
+
+            const rect = originEl ? originEl.getBoundingClientRect() : null;
+            const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+            const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+
+            const theme = document.body.getAttribute('data-theme') || 'warm';
+            const paletteByTheme = {
+                warm:     ['#6b5f4f', '#a89b88', '#e8ddc5', '#d4c5a8'],
+                cool:     ['#4f5f7a', '#8aa0c0', '#cdd8e6', '#e6eef7'],
+                mint:     ['#3f7a5a', '#7ab896', '#c8e6d4', '#eaf4ee'],
+                lavender: ['#6a5a8a', '#a896c8', '#d8cce8', '#f0ecf7'],
+                sunset:   ['#a86a4a', '#e0a080', '#f7d4b8', '#fdf0e6'],
+                dark:     ['#c9bba0', '#e8ddc5', '#8a7a65', '#f5efe3']
+            };
+            const palette = paletteByTheme[theme] || paletteByTheme.warm;
+            const accent = getComputedStyle(document.documentElement).getPropertyValue('--quiz-accent').trim() || '#6b5f4f';
+
+            const count = opts.count || (isMobileDevice() ? 14 : 26);
+            const spread = opts.spread || (isMobileDevice() ? 70 : 120);
+
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+
+                const type = Math.random();
+                const size = 6 + Math.random() * (isMobileDevice() ? 8 : 12);
+                const color = Math.random() < 0.35 ? accent : palette[Math.floor(Math.random() * palette.length)];
+
+                if (type < 0.5) {
+                    // Звезда (SVG)
+                    p.innerHTML = `
+                        <svg viewBox="0 0 24 24" width="${size}" height="${size}">
+                            <path d="M12 2l2.9 6.6L22 9.3l-5.3 4.9 1.5 7.1L12 17.8 5.8 21.3l1.5-7.1L2 9.3l7.1-.7z"
+                                  fill="${color}"/>
+                        </svg>`;
+                } else if (type < 0.8) {
+                    // Кружок-искра
+                    p.style.width = size + 'px';
+                    p.style.height = size + 'px';
+                    p.style.borderRadius = '50%';
+                    p.style.background = color;
+                    p.style.boxShadow = `0 0 ${size}px ${color}`;
+                } else {
+                    // Ромбик
+                    p.style.width = size + 'px';
+                    p.style.height = size + 'px';
+                    p.style.background = color;
+                    p.style.transform = 'rotate(45deg)';
+                }
+
+                p.style.left = cx + 'px';
+                p.style.top = cy + 'px';
+
+                container.appendChild(p);
+
+                const angle = Math.random() * Math.PI * 2;
+                const distance = spread * (0.4 + Math.random() * 0.9);
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance - (30 + Math.random() * 60);
+                const rot = (Math.random() - 0.5) * 720;
+                const duration = 900 + Math.random() * 700;
+                const delay = Math.random() * 120;
+
+                p.animate([
+                    { transform: `translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.4)`, opacity: 0 },
+                    { transform: `translate(-50%, -50%) translate(${dx * 0.6}px, ${dy * 0.6}px) rotate(${rot * 0.5}deg) scale(1.1)`, opacity: 1, offset: 0.25 },
+                    { transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(0.2)`, opacity: 0 }
+                ], {
+                    duration,
+                    delay,
+                    easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)',
+                    fill: 'forwards'
+                });
+            }
+
+            setTimeout(() => container.remove(), 2200);
+        }
+
+        function burstAround(el) {
+            if (!el || prefersReducedMotion()) return;
+            el.animate([
+                { boxShadow: '0 0 0 0 ' + hexToRgba(getComputedStyle(document.documentElement).getPropertyValue('--quiz-accent').trim() || '#6b5f4f', 0.55) },
+                { boxShadow: '0 0 0 18px ' + hexToRgba(getComputedStyle(document.documentElement).getPropertyValue('--quiz-accent').trim() || '#6b5f4f', 0) }
+            ], { duration: 700, easing: 'ease-out' });
+        }
+
         // ==================== ТЕМЫ И АНИМАЦИИ ====================
         const QUIZ_THEMES = [
-            { id: 'warm',     label: 'Тёплая',     preview: 'linear-gradient(135deg,#f5f2ec,#e8ddc5)', accent: '#6b5f4f' },
-            { id: 'cool',     label: 'Холодная',   preview: 'linear-gradient(135deg,#eef2f7,#cdd8e6)', accent: '#4f5f7a' },
-            { id: 'mint',     label: 'Мятная',     preview: 'linear-gradient(135deg,#eaf4ee,#c8e6d4)', accent: '#3f7a5a' },
-            { id: 'lavender', label: 'Лавандовая', preview: 'linear-gradient(135deg,#f0ecf7,#d8cce8)', accent: '#6a5a8a' },
-            { id: 'sunset',   label: 'Закат',      preview: 'linear-gradient(135deg,#fdf0e6,#f7d4b8)', accent: '#a86a4a' },
-            { id: 'dark',     label: 'Тёмная',     preview: 'linear-gradient(135deg,#2b2a28,#45423e)', accent: '#c9bba0' }
+            {
+                id: 'warm', label: 'Тёплая',
+                preview: 'linear-gradient(135deg,#f5f2ec,#e8ddc5)',
+                accent: '#6b5f4f',
+                tip: 'Тёплый бежевый фон. Классика, хорошо читается, не утомляет глаза. Дудлы — коричневые.'
+            },
+            {
+                id: 'cool', label: 'Холодная',
+                preview: 'linear-gradient(135deg,#eef2f7,#cdd8e6)',
+                accent: '#4f5f7a',
+                tip: 'Прохладный голубовато-серый фон. Спокойный, «деловой» вид. Дудлы — синие.'
+            },
+            {
+                id: 'mint', label: 'Мятная',
+                preview: 'linear-gradient(135deg,#eaf4ee,#c8e6d4)',
+                accent: '#3f7a5a',
+                tip: 'Свежий мятно-зелёный фон. Ассоциируется с природой и учёбой. Дудлы — зелёные.'
+            },
+            {
+                id: 'lavender', label: 'Лавандовая',
+                preview: 'linear-gradient(135deg,#f0ecf7,#d8cce8)',
+                accent: '#6a5a8a',
+                tip: 'Мягкий сиренево-фиолетовый фон. Творческий, успокаивающий. Дудлы — фиолетовые.'
+            },
+            {
+                id: 'sunset', label: 'Закат',
+                preview: 'linear-gradient(135deg,#fdf0e6,#f7d4b8)',
+                accent: '#a86a4a',
+                tip: 'Тёплый персиково-оранжевый фон. Энергичный, «летний». Дудлы — оранжевые.'
+            },
+            {
+                id: 'dark', label: 'Тёмная',
+                preview: 'linear-gradient(135deg,#2b2a28,#45423e)',
+                accent: '#c9bba0',
+                tip: 'Тёмный фон с кремовым акцентом. Для вечерних занятий и экономии батареи. Дудлы — светло-кремовые.'
+            }
         ];
 
         const ACCENT_COLORS = [
-            '#6b5f4f', '#4f5f7a', '#3f7a5a', '#6a5a8a',
-            '#a86a4a', '#b85a5a', '#7a6a3a', '#4a4238'
+            { c: '#6b5f4f', tip: 'Коричневый — нейтральный, «книжный»' },
+            { c: '#4f5f7a', tip: 'Синий — спокойствие и доверие' },
+            { c: '#3f7a5a', tip: 'Зелёный — рост и свежесть' },
+            { c: '#6a5a8a', tip: 'Фиолетовый — креативность' },
+            { c: '#a86a4a', tip: 'Терракотовый — энергия и тепло' },
+            { c: '#b85a5a', tip: 'Красный — внимание и акцент' },
+            { c: '#7a6a3a', tip: 'Оливковый — природный и спокойный' },
+            { c: '#4a4238', tip: 'Тёмно-серый — строгий и минималистичный' }
         ];
 
         const QUIZ_ANIMATIONS = [
-            { id: 'slide', label: 'Выезд',        desc: 'Вопрос выезжает сбоку' },
-            { id: 'fade',  label: 'Плавно',       desc: 'Мягкое появление' },
-            { id: 'zoom',  label: 'Увеличение',   desc: 'Появление из центра' },
-            { id: 'flip',  label: 'Переворот',    desc: '3D-переворот карточки' },
-            { id: 'none',  label: 'Без анимации', desc: 'Мгновенная смена' }
+            { id: 'slide', label: 'Выезд',        desc: 'Вопрос выезжает сбоку', tip: 'Карточка вопроса выезжает слева направо. Живо, но не отвлекает.' },
+            { id: 'fade',  label: 'Плавно',       desc: 'Мягкое появление',     tip: 'Вопрос плавно проявляется. Самый спокойный вариант.' },
+            { id: 'zoom',  label: 'Увеличение',   desc: 'Появление из центра',  tip: 'Вопрос «вырастает» из центра. Заметно и динамично.' },
+            { id: 'flip',  label: 'Переворот',    desc: '3D-переворот карточки', tip: 'Карточка переворачивается в 3D. Эффектно, но чуть тяжелее для слабых устройств.' },
+            { id: 'none',  label: 'Без анимации', desc: 'Мгновенная смена',     tip: 'Без анимации. Для тех, кому важно быстрее пройти.' }
         ];
 
         function applyTheme(themeId) {
             const t = QUIZ_THEMES.find(x => x.id === themeId) || QUIZ_THEMES[0];
             document.body.setAttribute('data-theme', t.id);
+            // Перерисовать дудлы новым цветом
+            window.dispatchEvent(new Event('doodle-theme-changed'));
         }
 
         function applyAccent(accent) {
@@ -1126,6 +1399,21 @@
             document.body.classList.remove('anim-slide', 'anim-fade', 'anim-zoom', 'anim-flip', 'anim-none');
             document.body.classList.add('anim-' + valid);
         }
+
+        // ==================== ТУЛТИПЫ ПО ТАПУ (мобилка) ====================
+        (function initTapTooltips() {
+            let lastTap = 0;
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-tip]');
+                if (!target) return;
+                // На тач-устройствах повторный тап переключает видимость
+                const now = Date.now();
+                if (now - lastTap < 350) {
+                    target.classList.toggle('tip-open');
+                }
+                lastTap = now;
+            }, { passive: true });
+        })();
 
         // ==================== СОСТОЯНИЕ ====================
         const state = {
@@ -1180,7 +1468,6 @@
                 return;
             }
 
-            // Применяем сохранённые тему и анимацию
             if (quiz.theme) applyTheme(quiz.theme);
             if (quiz.accent) applyAccent(quiz.accent);
             if (quiz.animation) applyAnimation(quiz.animation);
@@ -1367,17 +1654,26 @@
 
                     <!-- ===== КАСТОМИЗАЦИЯ ===== -->
                     <div class="custom-section">
-                        <div class="custom-section-title">Фон викторины</div>
+                        <div class="custom-section-title">
+                            Фон викторины
+                            <span class="info-dot" data-tip="Фон применяется ко всей странице сзади викторины. Дудлы на фоне автоматически перекрашиваются в цвет темы.">?</span>
+                        </div>
                         <div class="swatch-row" id="themeSwatches"></div>
                     </div>
 
                     <div class="custom-section">
-                        <div class="custom-section-title">Акцентный цвет (кнопки, переключатели)</div>
+                        <div class="custom-section-title">
+                            Акцентный цвет
+                            <span class="info-dot" data-tip="Цвет кнопок, переключателей, рамок и значков. Выбирайте контрастный к фону, чтобы элементы были хорошо видны.">?</span>
+                        </div>
                         <div class="swatch-row" id="accentSwatches"></div>
                     </div>
 
                     <div class="custom-section">
-                        <div class="custom-section-title">Анимация вопросов для ученика</div>
+                        <div class="custom-section-title">
+                            Анимация вопросов
+                            <span class="info-dot" data-tip="Как появляется каждый следующий вопрос у ученика. На мобильных «Переворот» может быть тяжелее — остальные легче.">?</span>
+                        </div>
                         <div class="swatch-row" id="animSwatches" style="gap:0.5rem;"></div>
                     </div>
 
@@ -1443,7 +1739,6 @@
                 </div>
             `;
 
-            // Применяем текущую тему
             applyTheme(state.theme);
             applyAccent(state.accent);
             applyAnimation(state.animation);
@@ -1486,14 +1781,16 @@
             loadQuizzes();
         }
 
-        // ==================== КОНТРОЛЫ КАСТОМИЗАЦИИ ====================
+        // ==================== КОНТРОЛЫ КАСТОМИЗАЦИИ С ПАМЯТКОЙ ====================
         function renderCustomizationControls() {
             // Темы
             const themeWrap = $('#themeSwatches');
             themeWrap.innerHTML = QUIZ_THEMES.map(t => `
                 <div class="theme-swatch ${state.theme === t.id ? 'active' : ''}"
                      data-theme-id="${t.id}"
-                     title="${t.label}"
+                     data-tip="${t.tip}"
+                     aria-label="${t.label}: ${t.tip}"
+                     tabindex="0"
                      style="background:${t.preview};"></div>
             `).join('');
             themeWrap.querySelectorAll('.theme-swatch').forEach(el => {
@@ -1514,15 +1811,20 @@
                         applyAccent(state.accent);
                     }
                 });
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+                });
             });
 
             // Акцент
             const accentWrap = $('#accentSwatches');
-            accentWrap.innerHTML = ACCENT_COLORS.map(c => `
-                <div class="accent-swatch ${state.accent === c ? 'active' : ''}"
-                     data-accent="${c}"
-                     title="${c}"
-                     style="background:${c};"></div>
+            accentWrap.innerHTML = ACCENT_COLORS.map(a => `
+                <div class="accent-swatch ${state.accent === a.c ? 'active' : ''}"
+                     data-accent="${a.c}"
+                     data-tip="${a.tip}"
+                     aria-label="${a.tip}"
+                     tabindex="0"
+                     style="background:${a.c};"></div>
             `).join('');
             accentWrap.querySelectorAll('.accent-swatch').forEach(el => {
                 el.addEventListener('click', () => {
@@ -1531,13 +1833,19 @@
                     el.classList.add('active');
                     applyAccent(state.accent);
                 });
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+                });
             });
 
             // Анимации
             const animWrap = $('#animSwatches');
             animWrap.innerHTML = QUIZ_ANIMATIONS.map(a => `
                 <div class="anim-option ${state.animation === a.id ? 'active' : ''}"
-                     data-anim-id="${a.id}">
+                     data-anim-id="${a.id}"
+                     data-tip="${a.tip}"
+                     aria-label="${a.label}: ${a.tip}"
+                     tabindex="0">
                     <div class="anim-name">${a.label}</div>
                     <div class="anim-desc">${a.desc}</div>
                 </div>
@@ -1548,6 +1856,9 @@
                     animWrap.querySelectorAll('.anim-option').forEach(s => s.classList.remove('active'));
                     el.classList.add('active');
                     applyAnimation(state.animation);
+                });
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
                 });
             });
         }
@@ -1688,10 +1999,29 @@
             linkSection.style.display = 'block';
 
             showToast('Викторина сохранена в облаке!');
-            throwConfetti();
+            spawnParticles(null, { count: isMobileDevice() ? 16 : 30, spread: 140 });
             linkSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             await loadQuizzes();
+        }
+
+        function showSaveProgress() {
+            const bar = $('#saveProgress');
+            const fill = $('#saveProgressFill');
+            bar.classList.add('active');
+            let p = 0;
+            fill.style.width = '0%';
+            const iv = setInterval(() => {
+                p += 8 + Math.random() * 12;
+                if (p >= 100) {
+                    p = 100;
+                    fill.style.width = '100%';
+                    clearInterval(iv);
+                    setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0%'; }, 400);
+                } else {
+                    fill.style.width = p + '%';
+                }
+            }, 100);
         }
 
         // ==================== КОПИРОВАНИЕ ====================
@@ -1980,12 +2310,12 @@
                     btn.style.animation = 'cardSlideIn 0.4s ease both';
                     btn.style.animationDelay = (idx * 0.06) + 's';
                     btn.textContent = opt;
-                    btn.addEventListener('click', () => selectAnswer(idx));
+                    btn.addEventListener('click', () => selectAnswer(idx, btn));
                     optionsWrap.appendChild(btn);
                 });
             }
 
-            function selectAnswer(idx) {
+            function selectAnswer(idx, clickedBtn) {
                 if (answered) return;
                 answered = true;
                 const q = quiz.questions[current];
@@ -2008,6 +2338,12 @@
                 if (idx === q.correct) {
                     score++;
                     fb.innerHTML = '<span style="color:#5a8a5a; font-weight:600;">Верно</span>';
+                    // НОВЫЕ ЧАСТИЦЫ: вокруг кнопки правильного ответа
+                    const correctBtn = buttons[q.correct];
+                    if (correctBtn) {
+                        spawnParticles(correctBtn, { count: isMobileDevice() ? 12 : 20, spread: isMobileDevice() ? 60 : 100 });
+                        burstAround(correctBtn);
+                    }
                 } else {
                     fb.innerHTML = `<span style="color:#a85a5a; font-weight:600;">Неверно. Правильный ответ: ${escapeHtml(q.options[q.correct])}</span>`;
                 }
@@ -2029,7 +2365,13 @@
                 else if (percent >= 50) { grade = 'Неплохо.'; gradeColor = '#a89b6a'; }
                 else { grade = 'Стоит повторить.'; gradeColor = '#a85a5a'; }
 
-                if (percent >= 80) throwConfetti();
+                if (percent >= 80) {
+                    // Финал: частицы от центра экрана
+                    spawnParticles(null, {
+                        count: isMobileDevice() ? 20 : 40,
+                        spread: isMobileDevice() ? 120 : 220
+                    });
+                }
 
                 let savedMsg = '';
                 if (studentName && quizId) {
